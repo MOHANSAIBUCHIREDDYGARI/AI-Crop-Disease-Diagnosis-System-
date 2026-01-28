@@ -1,0 +1,178 @@
+[
+  {
+    "crop": "tomato",
+    "disease_name": "Healthy",
+    "description": "The plant is healthy with no signs of disease",
+    "symptoms": "Green leaves, normal growth, no spots or discoloration",
+    "prevention_steps": "Maintain proper watering, ensure good drainage, use balanced fertilizers, monitor regularly for pests",
+    "is_healthy": true
+  },
+  {
+    "crop": "tomato",
+    "disease_name": "Tomato___Bacterial_spot",
+    "description": "Bacterial spot is caused by Xanthomonas bacteria and affects leaves, stems, and fruit",
+    "symptoms": "Small dark brown spots on leaves, yellow halos around spots, fruit lesions, leaf drop",
+    "prevention_steps": "Use disease-free seeds, avoid overhead watering, maintain plant spacing, remove infected plants, crop rotation",
+    "is_healthy": false
+  },
+  {
+    "crop": "tomato",
+    "disease_name": "Tomato___Early_blight",
+    "description": "Early blight is a fungal disease caused by Alternaria solani",
+    "symptoms": "Dark brown spots with concentric rings on older leaves, yellowing around spots, leaf drop, stem lesions",
+    "prevention_steps": "Remove lower leaves, mulch around plants, avoid overhead irrigation, ensure good air circulation, crop rotation",
+    "is_healthy": false
+  },
+  {
+    "crop": "tomato",
+    "disease_name": "Tomato___Late_blight",
+    "description": "Late blight is a devastating disease caused by Phytophthora infestans",
+    "symptoms": "Large brown blotches on leaves, white mold on leaf undersides, rapid plant death, fruit rot",
+    "prevention_steps": "Plant resistant varieties, avoid overhead watering, ensure good drainage, remove infected plants immediately",
+    "is_healthy": false
+  },
+  {
+    "crop": "tomato",
+    "disease_name": "Tomato___Leaf_Mold",
+    "description": "Leaf mold is caused by the fungus Passalora fulva and thrives in humid conditions",
+    "symptoms": "Yellow spots on upper leaf surface, olive-green to brown mold on undersides, leaf curling",
+    "prevention_steps": "Improve air circulation, reduce humidity, avoid overhead watering, remove infected leaves",
+    "is_healthy": false
+  },
+  {
+    "crop": "tomato",
+    "disease_name": "Tomato___Septoria_leaf_spot",
+    "description": "Septoria leaf spot is a fungal disease that affects tomato foliage",
+    "symptoms": "Small circular spots with dark borders and gray centers, spots on lower leaves first, progressive defoliation",
+    "prevention_steps": "Mulch plants, avoid wetting foliage, remove infected leaves, crop rotation, use fungicides preventively",
+    "is_healthy": false
+  },
+  {
+    "crop": "tomato",
+    "disease_name": "Tomato___Spider_mites Two-spotted_spider_mite",
+    "description": "Spider mites are tiny pests that suck plant juices",
+    "symptoms": "Yellow stippling on leaves, fine webbing on plants, leaf bronzing, reduced plant vigor",
+    "prevention_steps": "Maintain adequate moisture, spray water on undersides of leaves, introduce predatory mites, avoid over-fertilizing",
+    "is_healthy": false
+  },
+  {
+    "crop": "tomato",
+    "disease_name": "Tomato___Target_Spot",
+    "description": "Target spot is a fungal disease caused by Corynespora cassiicola",
+    "symptoms": "Brown spots with concentric rings, spots on leaves and fruit, leaf yellowing and drop",
+    "prevention_steps": "Improve air circulation, avoid overhead irrigation, remove plant debris, use resistant varieties",
+    "is_healthy": false
+  },
+  {
+    "crop": "tomato",
+    "disease_name": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+    "description": "Viral disease transmitted by whiteflies causing severe yield loss",
+    "symptoms": "Upward leaf curling, yellowing of leaf margins, stunted growth, reduced fruit production",
+    "prevention_steps": "Control whitefly populations, use virus-resistant varieties, remove infected plants, use reflective mulches",
+    "is_healthy": false
+  },
+  {
+    "crop": "tomato",
+    "disease_name": "Tomato___Tomato_mosaic_virus",
+    "description": "Viral disease that causes mottled leaves and reduced yield",
+    "symptoms": "Mottled light and dark green on leaves, leaf distortion, stunted growth, reduced fruit quality",
+    "prevention_steps": "Use virus-free seeds, sanitize tools, control aphids, remove infected plants, avoid tobacco use near plants",
+    "is_healthy": false
+  },
+  {
+    "crop": "rice",
+    "disease_name": "Healthy",
+    "description": "The rice plant is healthy with no signs of disease",
+    "symptoms": "Green leaves, normal tillering, no spots or discoloration",
+    "prevention_steps": "Maintain proper water levels, use balanced fertilizers, monitor for pests, practice crop rotation",
+    "is_healthy": true
+  },
+  {
+    "crop": "rice",
+    "disease_name": "BrownSpot",
+    "description": "Brown spot is a fungal disease caused by Bipolaris oryzae",
+    "symptoms": "Small circular brown spots on leaves, spots may have yellow halos, seedling blight in severe cases",
+    "prevention_steps": "Use healthy seeds, maintain proper fertilization, ensure good drainage, avoid water stress",
+    "is_healthy": false
+  },
+  {
+    "crop": "rice",
+    "disease_name": "Hispa",
+    "description": "Rice hispa is a beetle pest that damages rice leaves",
+    "symptoms": "White parallel streaks on leaves, leaf scraping, reduced photosynthesis, stunted growth",
+    "prevention_steps": "Clip leaf tips of seedlings, avoid close planting, use light traps, biological control with parasitoids",
+    "is_healthy": false
+  },
+  {
+    "crop": "rice",
+    "disease_name": "LeafBlast",
+    "description": "Leaf blast is a serious fungal disease caused by Magnaporthe oryzae",
+    "symptoms": "Diamond-shaped lesions with gray centers and brown margins, leaf death, neck rot in severe cases",
+    "prevention_steps": "Use resistant varieties, avoid excessive nitrogen, maintain proper water management, remove infected stubble",
+    "is_healthy": false
+  },
+  {
+    "crop": "wheat",
+    "disease_name": "Healthy",
+    "description": "The wheat plant is healthy with no signs of disease",
+    "symptoms": "Green leaves, normal growth, no rust or spots",
+    "prevention_steps": "Use certified seeds, practice crop rotation, maintain proper spacing, monitor regularly",
+    "is_healthy": true
+  },
+  {
+    "crop": "wheat",
+    "disease_name": "Brown rust",
+    "description": "Brown rust is a fungal disease caused by Puccinia triticina",
+    "symptoms": "Small orange-brown pustules on leaves, pustules arranged randomly, leaf yellowing, reduced yield",
+    "prevention_steps": "Plant resistant varieties, remove volunteer wheat, apply fungicides at early stages, ensure proper nutrition",
+    "is_healthy": false
+  },
+  {
+    "crop": "wheat",
+    "disease_name": "Yellow rust",
+    "description": "Yellow rust is caused by Puccinia striiformis and can cause severe yield loss",
+    "symptoms": "Yellow-orange pustules in stripes on leaves, pustules arranged in rows, leaf death, stunted growth",
+    "prevention_steps": "Use resistant varieties, early sowing, remove infected plants, apply fungicides preventively",
+    "is_healthy": false
+  },
+  {
+    "crop": "wheat",
+    "disease_name": "Loose Smut",
+    "description": "Loose smut is a seed-borne fungal disease caused by Ustilago tritici",
+    "symptoms": "Black powdery spore mass replacing grain, infected heads emerge early, complete grain loss in infected heads",
+    "prevention_steps": "Use certified disease-free seeds, seed treatment with fungicides, remove infected plants, crop rotation",
+    "is_healthy": false
+  },
+  {
+    "crop": "cotton",
+    "disease_name": "Healthy",
+    "description": "The cotton plant is healthy with no signs of disease",
+    "symptoms": "Green leaves, normal boll development, no spots or wilting",
+    "prevention_steps": "Maintain proper irrigation, use balanced fertilizers, monitor for pests, practice crop rotation",
+    "is_healthy": true
+  },
+  {
+    "crop": "cotton",
+    "disease_name": "Bacterial Blight",
+    "description": "Bacterial blight is caused by Xanthomonas bacteria",
+    "symptoms": "Water-soaked lesions on leaves, angular leaf spots, boll rot, defoliation in severe cases",
+    "prevention_steps": "Use disease-free seeds, avoid overhead irrigation, remove infected plants, crop rotation, use resistant varieties",
+    "is_healthy": false
+  },
+  {
+    "crop": "cotton",
+    "disease_name": "Curl Virus",
+    "description": "Cotton leaf curl virus transmitted by whiteflies",
+    "symptoms": "Upward and downward leaf curling, vein thickening, leaf darkening, stunted growth, reduced boll formation",
+    "prevention_steps": "Control whitefly populations, use virus-resistant varieties, remove infected plants early, maintain field sanitation",
+    "is_healthy": false
+  },
+  {
+    "crop": "cotton",
+    "disease_name": "Leaf Hopper Jassids",
+    "description": "Jassids are sucking pests that damage cotton plants",
+    "symptoms": "Leaf reddening and curling, hopper burn on leaf margins, stunted growth, reduced yield",
+    "prevention_steps": "Monitor regularly, use yellow sticky traps, apply neem-based pesticides, maintain field hygiene, biological control",
+    "is_healthy": false
+  }
+]
