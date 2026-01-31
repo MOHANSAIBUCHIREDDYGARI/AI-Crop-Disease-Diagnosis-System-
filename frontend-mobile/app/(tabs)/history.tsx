@@ -6,16 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 
-interface HistoryItem {
-    id: number;
-    crop: string;
-    disease: string;
-    confidence: number;
-    created_at: string;
-}
-
 export default function HistoryScreen() {
-    const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const { user, isGuest } = useAuth();
