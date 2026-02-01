@@ -1,6 +1,13 @@
 from flask import Blueprint, request, jsonify
 import sys
 import os
+import uuid
+import json
+import time
+from datetime import datetime
+
+def import_uuid():
+    return str(uuid.uuid4())
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -23,13 +30,14 @@ chatbot_bp = Blueprint('chatbot', __name__)
 if GEMINI_AVAILABLE and settings.GOOGLE_GEMINI_API_KEY:
     try:
         genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
+        # Use a multimodal model
+        model = genai.GenerativeModel('gemini-1.5-flash')
     except:
         model = None
 else:
     model = None
 
-def get_chatbot_response(message: str, language: str = 'en', context: str = '') -> str:
+def get_chatbot_response(message: str, language: str = 'en', context: str = '', image_path: str = None) -> str:
     """
     Get chatbot response using Google Gemini or fallback
     
@@ -37,6 +45,7 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '') 
         message: User message
         language: Language code
         context: Additional context about user's crops/diseases
+        image_path: Path to user uploaded image or video
         
     Returns:
         Chatbot response
@@ -69,15 +78,46 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '') 
     
     if model and settings.GOOGLE_GEMINI_API_KEY:
         try:
+            # Prepare content parts
+            content_parts = [system_prompt]
+            
             # Translate message to English if needed
             if language != 'en':
                 message_en = translate_text(message, 'en', language)
             else:
                 message_en = message
             
+            content_parts.append("User: " + message_en)
+            
+            # Handle Media (Image or Video)
+            if image_path and os.path.exists(image_path):
+                file_ext = os.path.splitext(image_path)[1].lower()
+                
+                if file_ext in ['.jpg', '.jpeg', '.png', '.webp']:
+                    import PIL.Image
+                    img = PIL.Image.open(image_path)
+                    content_parts.append(img)
+                    content_parts.append(" Analyze this image related to agriculture/crops if present.")
+                elif file_ext in ['.mp4', '.mov', '.avi', '.mkv', '.webm']:
+                    print(f"DEBUG: Uploading video {image_path} to Gemini...")
+                    video_file = genai.upload_file(image_path)
+                    
+                    # Wait for processing
+                    while video_file.state.name == "PROCESSING":
+                        print("Waiting for video processing...")
+                        time.sleep(1)
+                        video_file = genai.get_file(video_file.name)
+                        
+                    if video_file.state.name == "FAILED":
+                        raise ValueError("Video processing failed")
+                        
+                    content_parts.append(video_file)
+                    content_parts.append(" Analyze this video related to agriculture/crops if present.")
+            
+            content_parts.append("\nAssistant:")
+            
             # Get response from Gemini
-            full_prompt = system_prompt + "\nUser: " + message_en + "\nAssistant:"
-            response = model.generate_content(full_prompt)
+            response = model.generate_content(content_parts)
             answer = response.text
             
             # Translate response back to user's language
@@ -102,12 +142,13 @@ def get_fallback_response(message: str, language: str = 'en') -> str:
             'tomato_late_blight': "Late Blight is serious! Water-soaked lesions on leaves. Immediate treatment: Metalaxyl + Mancozeb (2.5g/L) every 5-7 days. Remove severely infected plants. Avoid evening watering. Cost: ₹300-500 per acre per spray.",
             'tomato_septoria': "Septoria Leaf Spot shows small circular spots. Treatment: Chlorothalonil (2ml/L) or Copper fungicide (3g/L) weekly. Organic: Bordeaux mixture (1%). Remove lower infected leaves.",
             'rice_blast': "Rice Blast causes diamond-shaped lesions. Treatment: Tricyclazole (0.6g/L) at tillering and booting stages. Or Carbendazim (1g/L). Prevention: Avoid excessive nitrogen. Cost: ₹400-600/acre.",
-            'pesticide_general': "For specific pesticide recommendations, I need: 1) Which crop? 2) What symptoms? 3) Disease stage? Upload a crop image for accurate diagnosis and tailored pesticide suggestions with dosages.",
+            'pesticide_general': "For specific pesticide recommendations, I need: 1) Which crop? 2) What symptoms? 3) Disease stage? Upload a crop image or video for accurate diagnosis and tailored pesticide suggestions with dosages.",
             'cost': "Treatment costs vary: Early stage (₹200-400/acre), Medium (₹500-800/acre), Severe (₹1000-1500/acre). Includes pesticides and labor. Use cost calculator after diagnosis for detailed breakdown.",
             'prevention': "Key prevention: 1) Crop rotation (3-4 years), 2) Disease-free seeds, 3) Proper spacing, 4) Drip irrigation, 5) Regular monitoring, 6) Remove infected plants, 7) Balanced fertilization.",
             'organic': "Organic treatments: Neem oil (5ml/L) for pests, Trichoderma for soil diseases, Bacillus thuringiensis for caterpillars, Bordeaux mixture (1%) for fungal diseases, Garlic-chili spray for aphids. Apply weekly.",
             'weather': "Weather impacts: High humidity + moderate temp (20-25°C) favors fungal diseases. Monsoon needs preventive sprays. Hot dry weather reduces fungal diseases but increases pests. Adjust based on forecasts.",
-            'default': "I'm your agricultural assistant! Ask about: 🌱 Crop diseases (tomato, rice, wheat, cotton), 💊 Pesticides, 💰 Costs, 🌿 Organic solutions, 🛡️ Prevention, 🌦️ Weather advice. Upload crop image for diagnosis!"
+            'default': "I'm your agricultural assistant! Ask about: 🌱 Crop diseases (tomato, rice, wheat, cotton), 💊 Pesticides, 💰 Costs, 🌿 Organic solutions, 🛡️ Prevention, 🌦️ Weather advice. Upload crop image or video for diagnosis!",
+            'image_received': "I received your media! Unfortunately, my advanced vision features are currently offline, but I can still help with text questions."
         }
     }
     
@@ -138,9 +179,39 @@ def get_fallback_response(message: str, language: str = 'en') -> str:
     
     # Translate if needed
     if language != 'en':
+        print(f"DEBUG: Translating fallback response to {language}")
         response = translate_text(response, language)
     
     return response
+
+@chatbot_bp.route('/upload', methods=['POST'])
+def upload_media():
+    """Handle media upload independently"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        if file:
+            upload_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'chat_uploads')
+            os.makedirs(upload_folder, exist_ok=True)
+            
+            ext = os.path.splitext(file.filename)[1]
+            if not ext:
+                ext = '.jpg'
+                
+            filename = f"chat_upload_{import_uuid()}{ext}"
+            file_path = os.path.join(upload_folder, filename)
+            file.save(file_path)
+            
+            return jsonify({'file_path': file_path, 'message': 'Upload successful'}), 200
+            
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @chatbot_bp.route('/message', methods=['POST'])
 def send_message():
@@ -162,54 +233,86 @@ def send_message():
                 if user:
                     language = user[0]['preferred_language']
         
-        data = request.get_json()
-        message = data.get('message', '').strip()
+        # Handle both JSON and Multipart Data
+        data = {}
+        file_path = None
         
-        if not message:
-            return jsonify({'error': 'Message is required'}), 400
-        
-        # Get context from logged-in users OR from request body for guests
+        if request.content_type.startswith('multipart/form-data'):
+            data = request.form.to_dict()
+            if 'image' in request.files:
+                file = request.files['image']
+                if file.filename != '':
+                    # Save file
+                    upload_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'chat_uploads')
+                    os.makedirs(upload_folder, exist_ok=True)
+                    
+                    # Get extension from filename
+                    ext = os.path.splitext(file.filename)[1]
+                    if not ext:
+                        ext = '.jpg' # Default backup
+                        
+                    filename = f"chat_{user_id or 'guest'}_{import_uuid()}{ext}" 
+                    file_path = os.path.join(upload_folder, filename)
+                    file.save(file_path)
+                    print(f"DEBUG: Saved chat media to {file_path}")
+        else:
+            data = request.get_json() or {}
+            # Allow passing pre-uploaded file path
+            if 'image_path' in data:
+                file_path = data['image_path']
+            
+        message = data.get('message', '')
+        # Allow language override from request
+        if 'language' in data:
+            language = data['language']
+            
+        # Context building
         context = ''
+        diagnosis_context_str = data.get('diagnosis_context')
+        if diagnosis_context_str: # If sent as JSON string in form-data
+             try:
+                 if isinstance(diagnosis_context_str, str):
+                     diagnosis_context = json.loads(diagnosis_context_str)
+                 else:
+                     diagnosis_context = diagnosis_context_str
+                     
+                 crop = diagnosis_context.get('crop', '')
+                 disease = diagnosis_context.get('disease', '')
+                 severity = diagnosis_context.get('severity_percent', 0)
+                 if crop and disease:
+                    context = f"User's current diagnosis: {crop} with {disease} at {severity}% severity."
+             except:
+                 pass
         
-        # Check if diagnosis context is provided in request (for guest users)
-        diagnosis_context = data.get('diagnosis_context')
-        if diagnosis_context:
-            # Guest user providing their current diagnosis
-            crop = diagnosis_context.get('crop', '')
-            disease = diagnosis_context.get('disease', '')
-            severity = diagnosis_context.get('severity_percent', 0)
-            if crop and disease:
-                context = f"User's current diagnosis: {crop} with {disease} at {severity}% severity."
-        elif user_id:
-            # Logged-in user - get from database
-            recent_diagnosis = db.execute_query(
-                '''SELECT crop, disease, severity_percent FROM diagnosis_history 
-                   WHERE user_id = ? ORDER BY created_at DESC LIMIT 1''',
-                (user_id,)
+        if not context and user_id:
+             # Logged-in user - get from database
+            try:
+                recent_diagnosis = db.execute_query(
+                    '''SELECT crop, disease, severity_percent FROM diagnosis_history 
+                       WHERE user_id = ? ORDER BY created_at DESC LIMIT 1''',
+                    (user_id,)
+                )
+                
+                if recent_diagnosis:
+                    d = recent_diagnosis[0]
+                    context = f"User's recent diagnosis: {d['crop']} with {d['disease']} at {d['severity_percent']}% severity."
+            except Exception as e:
+                print(f"Error fetching context: {e}")
+
+        # Get chatbot response (passing image_path)
+        response_text = get_chatbot_response(message, language, context, file_path)
+        
+        # Save interaction history if user is logged in
+        if user_id:
+            db.execute_query(
+                'INSERT INTO chat_history (user_id, user_message, bot_response, created_at) VALUES (?, ?, ?, ?)',
+                (user_id, message, response_text, datetime.now())
             )
             
-            if recent_diagnosis:
-                d = recent_diagnosis[0]
-                context = f"User's recent diagnosis: {d['crop']} with {d['disease']} at {d['severity_percent']}% severity."
-        
-        # Get chatbot response
-        response_text = get_chatbot_response(message, language, context)
-        
-        # Save conversation only for logged-in users
-        if user_id:
-            db.execute_insert(
-                '''INSERT INTO chatbot_conversations (user_id, message, response, language)
-                   VALUES (?, ?, ?, ?)''',
-                (user_id, message, response_text, language)
-            )
-        
-        return jsonify({
-            'message': message,
-            'response': response_text,
-            'language': language
-        }), 200
-        
+        return jsonify({'response': response_text})
+
     except Exception as e:
+        print(f"Chatbot Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @chatbot_bp.route('/history', methods=['GET'])
@@ -234,10 +337,10 @@ def get_chat_history():
         
         # Get chat history
         history = db.execute_query(
-            '''SELECT message, response, language, created_at 
-               FROM chatbot_conversations 
+            '''SELECT user_message, bot_response, created_at 
+               FROM chat_history 
                WHERE user_id = ? 
-               ORDER BY created_at DESC 
+               ORDER BY created_at ASC 
                LIMIT ?''',
             (user_id, limit)
         )
@@ -245,13 +348,14 @@ def get_chat_history():
         chat_list = []
         for chat in history:
             chat_list.append({
-                'message': chat['message'],
-                'response': chat['response'],
-                'language': chat['language'],
-                'created_at': chat['created_at']
+                'id': str(uuid.uuid4()), # Generate temp ID for frontend check
+                'user_message': chat['user_message'],
+                'bot_response': chat['bot_response'],
+                'created_at': chat['created_at'].isoformat() if isinstance(chat['created_at'], datetime) else chat['created_at']
             })
         
-        return jsonify({'history': chat_list}), 200
+        return jsonify(chat_list), 200
         
     except Exception as e:
+        print(f"History Error: {e}")
         return jsonify({'error': str(e)}), 500

@@ -52,6 +52,8 @@ export default function DashboardScreen() {
     { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
     { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ' },
     { code: 'mr', name: 'Marathi', nativeName: 'मराठी' },
+    { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം' },
+    { code: 'tcy', name: 'Tulu', nativeName: 'ತುಳು' },
   ];
 
   // Fetch weather data based on location

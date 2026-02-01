@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 import sys
@@ -16,6 +16,7 @@ from api.routes.diagnosis import diagnosis_bp
 from api.routes.cost import cost_bp
 from api.routes.chatbot import chatbot_bp
 from api.routes.weather import weather_bp
+from api.routes.translations import translations_bp
 
 # Create Flask app
 app = Flask(__name__)
@@ -34,6 +35,9 @@ app.register_blueprint(diagnosis_bp, url_prefix='/api/diagnosis')
 app.register_blueprint(cost_bp, url_prefix='/api/cost')
 app.register_blueprint(chatbot_bp, url_prefix='/api/chatbot')
 app.register_blueprint(weather_bp, url_prefix='/api/weather')
+app.register_blueprint(translations_bp, url_prefix='/api/translations')
+
+
 
 # Error handlers
 @app.errorhandler(404)

@@ -205,5 +205,37 @@ def get_supported_languages() -> Dict[str, str]:
         'te': 'తెలుగు (Telugu)',
         'ta': 'தமிழ் (Tamil)',
         'kn': 'ಕನ್ನಡ (Kannada)',
-        'mr': 'मराठी (Marathi)'
+        'mr': 'मराठी (Marathi)',
+        'ml': 'മലയാളം (Malayalam)',
+        'tcy': 'ತುಳು (Tulu)'
     }
+
+def get_all_translations(target_language: str) -> Dict[str, str]:
+    """
+    Get all translations for a specific language.
+    Falls back to dynamic translation if key is missing.
+    """
+    english_dict = base_translations.get('en', {})
+    
+    # Start with existing manual translations
+    if target_language in base_translations:
+        result_dict = base_translations[target_language].copy()
+    else:
+        result_dict = {}
+        
+    # Fill in missing keys
+    for key, en_text in english_dict.items():
+        if key not in result_dict:
+            # For Tulu, Google Translate doesn't support it well, fallback to English or Kannada?
+            # Using English fallback for now as per requirement or specific handling
+            if target_language == 'tcy':
+                result_dict[key] = en_text 
+            else:
+                try:
+                    # Dynamically translate
+                    translated = translate_text(en_text, target_language)
+                    result_dict[key] = translated
+                except:
+                    result_dict[key] = en_text
+                    
+    return result_dict
