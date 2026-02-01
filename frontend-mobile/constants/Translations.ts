@@ -58,6 +58,8 @@ export const Translations = {
         registerNow: "Register Now",
         guestHistorySubtitle: "Sign in to keep track of your crop diagnoses, treatments, and progression over time.",
         loginRegister: "Login / Register",
+        weatherUnavailable: "Weather Unavailable",
+        notAvailable: "N/A",
     },
     hi: {
         preferences: "प्राथमिकताएं",
@@ -118,6 +120,8 @@ export const Translations = {
         registerNow: "अभी पंजीकरण करें",
         guestHistorySubtitle: "अपनी फसल के निदान, उपचार और समय के साथ प्रगति पर नज़र रखने के लिए साइन इन करें।",
         loginRegister: "लॉगिन / पंजीकरण",
+        weatherUnavailable: "मौसम उपलब्ध नहीं है",
+        notAvailable: "उपलब्ध नहीं",
     },
     te: {
         preferences: "ప్రాధాన్యతలు",
@@ -178,6 +182,8 @@ export const Translations = {
         registerNow: "ఇప్పుడే నమోదు చేసుకోండి",
         guestHistorySubtitle: "మీ పంట నిర్ధారణలు, చికిత్సలు మరియు పురోగతిని ట్రాక్ చేయడానికి సైన్ ఇన్ చేయండి.",
         loginRegister: "లాగిన్ / రిజిస్టర్",
+        weatherUnavailable: "వాతావరణం అందుబాటులో లేదు",
+        notAvailable: "అందుబాటులో లేదు",
     },
     ta: {
         preferences: "விருப்பங்கள்",
@@ -238,6 +244,8 @@ export const Translations = {
         registerNow: "இப்போது பதிவு செய்யுங்கள்",
         guestHistorySubtitle: "உங்கள் பயிர் நோயறிதல்கள், சிகிச்சைகள் மற்றும் முன்னேற்றத்தைக் கண்காணிக்க உள்நுழையவும்.",
         loginRegister: "உள்நுழை / பதிவு",
+        weatherUnavailable: "வானிலை கிடைக்கவில்லை",
+        notAvailable: "கிடைக்கவில்லை",
     },
     kn: {
         preferences: "ಆದ್ಯತೆಗಳು",
@@ -298,6 +306,8 @@ export const Translations = {
         registerNow: "ಈಗ ನೋಂದಾಯಿಸಿ",
         guestHistorySubtitle: "ನಿಮ್ಮ ಬೆಳೆ ರೋಗನಿರ್ಣಯಗಳು, ಚಿಕಿತ್ಸೆಗಳು ಮತ್ತು ಪ್ರಗತಿಯನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.",
         loginRegister: "ಲಾಗಿನ್ / ನೋಂದಾಯಿಸಿ",
+        weatherUnavailable: "ಹವಾಮಾನ ಲಭ್ಯವಿಲ್ಲ",
+        notAvailable: "ಲಭ್ಯವಿಲ್ಲ",
     },
     mr: {
         preferences: "प्राधान्ये",
@@ -358,6 +368,8 @@ export const Translations = {
         registerNow: "आत्ताच नोंदणी करा",
         guestHistorySubtitle: "तुमचे पीक निदान, उपचार आणि प्रगतीचा मागोवा घेण्यासाठी साइन इन करा.",
         loginRegister: "लॉगिन / नोंदणी",
+        weatherUnavailable: "हवामान अनुपलब्ध",
+        notAvailable: "उपलब्ध नाही",
     },
 };
 

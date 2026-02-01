@@ -80,7 +80,7 @@ export default function DashboardScreen() {
       setWeather({
         temp: 28,
         description: 'Clear',
-        location: 'Weather Unavailable', // Better than 'Your Location'
+        location: t('weatherUnavailable'), // Better than 'Your Location'
       });
     }
   };
@@ -450,10 +450,10 @@ export default function DashboardScreen() {
       <View style={styles.weatherCard}>
         <View style={styles.weatherInfo}>
           <Text style={styles.weatherTemp}>
-            {location ? (weather ? `${weather.temp}°C` : 'Loading...') : 'N/A'}
+            {location ? (weather ? `${weather.temp}°C` : 'Loading...') : t('notAvailable')}
           </Text>
           <Text style={styles.weatherDesc}>
-            {location ? (weather ? weather.description : 'Fetching weather...') : 'Weather Unavailable'}
+            {location ? (weather ? weather.description : 'Fetching weather...') : t('weatherUnavailable')}
           </Text>
           <Text style={styles.weatherLocation}>
             {location ? (weather ? weather.location : t('weather')) : t('enableGps')}
