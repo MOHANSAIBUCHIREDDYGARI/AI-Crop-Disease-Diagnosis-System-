@@ -566,10 +566,10 @@ export default function DashboardScreen() {
       {isGuest && (
         <View style={styles.upsellCard}>
           <ShieldAlert size={24} color="#4caf50" style={{ marginBottom: 8 }} />
-          <T style={styles.upsellTitle}>saveHistory</T>
-          <T style={styles.upsellDesc}>createAccountDesc</T>
+          <Text style={styles.upsellTitle}>{t('saveYourHistory')}</Text>
+          <Text style={styles.upsellDesc}>{t('trackHealth')}</Text>
           <TouchableOpacity style={styles.upsellBtn} onPress={() => router.push('/profile')}>
-            <T style={styles.upsellBtnText}>registerNow</T>
+            <Text style={styles.upsellBtnText}>{t('registerNow')}</Text>
           </TouchableOpacity>
         </View>
       )}

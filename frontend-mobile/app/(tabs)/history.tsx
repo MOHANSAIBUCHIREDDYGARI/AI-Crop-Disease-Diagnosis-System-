@@ -4,15 +4,24 @@ import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Calendar, ChevronRight, Search, Filter, History as HistoryIcon, LogIn } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
-
+import { useLanguage } from '../../context/LanguageContext';
 import api from '../../services/api';
 import { getLocalHistory } from '../../services/localHistory';
 
+interface HistoryItem {
+    id: number;
+    crop: string;
+    disease: string;
+    confidence: number;
+    created_at: string;
+}
+
 export default function HistoryScreen() {
-    const [history, setHistory] = useState<any[]>([]);
+    const [history, setHistory] = useState<HistoryItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const { user, isGuest } = useAuth();
+    const { t } = useLanguage();
     const router = useRouter();
 
     useFocusEffect(
@@ -69,8 +78,23 @@ export default function HistoryScreen() {
         }
     };
 
-    // Guest check removed to allow local history viewing
-
+    if (isGuest) {
+        return (
+            <View style={styles.guestContainer}>
+                <View style={styles.guestContent}>
+                    <View style={styles.guestIconCircle}>
+                        <HistoryIcon size={48} color="#4caf50" />
+                    </View>
+                    <Text style={styles.guestTitle}>{t('saveYourHistory')}</Text>
+                    <Text style={styles.guestSubtitle}>{t('guestHistorySubtitle')}</Text>
+                    <TouchableOpacity style={styles.loginButton} onPress={() => router.replace('/login')}>
+                        <LogIn color="#fff" size={20} style={{ marginRight: 8 }} />
+                        <Text style={styles.loginButtonText}>{t('loginRegister')}</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
 
     const renderItem = ({ item }: any) => (
         <TouchableOpacity style={styles.historyCard} onPress={() => handleItemPress(item.id)}>
