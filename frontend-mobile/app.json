@@ -26,6 +26,12 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs to access your photos to diagnose crop diseases."
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
