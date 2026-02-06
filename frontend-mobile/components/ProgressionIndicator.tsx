@@ -49,15 +49,15 @@ const ProgressionIndicator: React.FC<ProgressionIndicatorProps> = ({ severity, s
 
             <View style={[styles.infoCard, { backgroundColor: severityInfo.bg }]}>
                 <Text style={[styles.infoText, { color: severityInfo.color }]}>
-                    {severity < 30 && '✓ Early detection! Treatment is most effective at this stage.'}
-                    {severity >= 30 && severity < 60 && '⚠ Moderate infection. Immediate treatment recommended.'}
-                    {severity >= 60 && '🚨 Severe infection. Urgent treatment required to prevent crop loss.'}
+                    {severity < 30 && t('earlyDetectionMsg')}
+                    {severity >= 30 && severity < 60 && t('moderateInfectionMsg')}
+                    {severity >= 60 && t('severeInfectionMsg')}
                 </Text>
             </View>
 
             {stage && (
                 <View style={styles.stageInfo}>
-                    <Text style={styles.stageLabel}>Current Stage:</Text>
+                    <Text style={styles.stageLabel}>{t('currentStage')}</Text>
                     <Text style={styles.stageValue}>{stage}</Text>
                 </View>
             )}

@@ -52,6 +52,10 @@ def detect_disease():
                 if user:
                     language = user[0]['preferred_language']
         
+        # Allow language override from form data
+        if 'language' in request.form and request.form['language']:
+            language = request.form['language']
+        
         # Check if image file is present
         if 'image' not in request.files:
             print("DEBUG: No 'image' key in request.files")

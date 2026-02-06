@@ -1,6 +1,6 @@
 
 import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+
 // For web compatibility if we needed AsyncStorage we could use it, but let's stick to the pattern in storage.ts
 // or simple localStorage for web.
 

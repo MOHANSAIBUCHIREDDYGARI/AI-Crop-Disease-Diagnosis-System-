@@ -10,11 +10,14 @@ import api from '../../services/api';
 import { getLocalHistory } from '../../services/localHistory';
 
 interface HistoryItem {
-    id: number;
+    id: string | number;
     crop: string;
     disease: string;
     confidence: number;
     created_at: string;
+    severity_percent?: number;
+    stage?: string;
+    fullData?: any;
 }
 
 export default function HistoryScreen() {
@@ -53,9 +56,9 @@ export default function HistoryScreen() {
         fetchHistory().then(() => setRefreshing(false));
     }, []);
 
-    const handleItemPress = async (id: number) => {
+    const handleItemPress = async (id: string | number) => {
         if (isGuest) {
-            const item = history.find((h: any) => h.id === id);
+            const item = history.find((h) => h.id === id);
             if (item && item.fullData) {
                 router.push({
                     pathname: '/results',
@@ -79,23 +82,7 @@ export default function HistoryScreen() {
         }
     };
 
-    if (isGuest) {
-        return (
-            <View style={styles.guestContainer}>
-                <View style={styles.guestContent}>
-                    <View style={styles.guestIconCircle}>
-                        <HistoryIcon size={48} color="#4caf50" />
-                    </View>
-                    <Text style={styles.guestTitle}>{t('saveYourHistory')}</Text>
-                    <Text style={styles.guestSubtitle}>{t('guestHistorySubtitle')}</Text>
-                    <TouchableOpacity style={styles.loginButton} onPress={() => router.replace('/login')}>
-                        <LogIn color="#fff" size={20} style={{ marginRight: 8 }} />
-                        <Text style={styles.loginButtonText}>{t('loginRegister')}</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    }
+
 
     const renderItem = ({ item }: any) => (
         <TouchableOpacity style={styles.historyCard} onPress={() => handleItemPress(item.id)}>

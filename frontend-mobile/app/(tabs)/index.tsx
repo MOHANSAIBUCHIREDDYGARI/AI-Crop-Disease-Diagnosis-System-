@@ -238,11 +238,15 @@ export default function DashboardScreen() {
         formData.append('image', blob, 'photo.jpg');
         formData.append('crop', selectedCrop);
 
+
         // Add location if available
         if (location) {
           formData.append('latitude', location.latitude.toString());
           formData.append('longitude', location.longitude.toString());
         }
+
+        // Add language
+        formData.append('language', language);
 
         const apiUrl = 'http://localhost:5000/api/diagnosis/detect';
         const fetchResponse = await fetch(apiUrl, {
