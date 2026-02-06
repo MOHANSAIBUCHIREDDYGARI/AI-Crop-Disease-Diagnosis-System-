@@ -1,10 +1,7 @@
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from typing import Optional, Dict
 import json
 import os
-
-# Initialize translator
-translator = Translator()
 
 # Cache for translations to reduce API calls
 translation_cache = {}
@@ -29,15 +26,7 @@ base_translations = load_base_translations()
 
 def translate_text(text: str, target_language: str = 'en', source_language: str = 'en') -> str:
     """
-    Translate text to target language using Google Translate
-    
-    Args:
-        text: Text to translate
-        target_language: Target language code (hi, te, ta, etc.)
-        source_language: Source language code (default: en)
-        
-    Returns:
-        Translated text
+    Translate text to target language using Google Translate (deep-translator)
     """
     # If target is same as source, return original
     if target_language == source_language or target_language == 'en':
@@ -49,9 +38,10 @@ def translate_text(text: str, target_language: str = 'en', source_language: str 
         return translation_cache[cache_key]
     
     try:
-        # Translate using googletrans library (free)
-        translation = translator.translate(text, src=source_language, dest=target_language)
-        translated_text = translation.text
+        # Translate using deep-translator
+        # It handles tokens and limits better than googletrans
+        translator = GoogleTranslator(source=source_language, target=target_language)
+        translated_text = translator.translate(text)
         
         # Cache the translation
         translation_cache[cache_key] = translated_text
@@ -61,6 +51,72 @@ def translate_text(text: str, target_language: str = 'en', source_language: str 
         print(f"Translation error: {e}")
         # Return original text if translation fails
         return text
+
+def translate_batch(texts: Dict[str, str], target_language: str) -> Dict[str, str]:
+    """
+    Translate a batch of texts to target language
+    """
+    print(f"DEBUG: translate_batch called for {target_language} with {len(texts)} texts")
+    if target_language == 'en':
+        return texts
+        
+    results = {}
+    
+    try:
+        keys = list(texts.keys())
+        values = list(texts.values())
+        
+        # deep-translator handles batch translation efficiently
+        translator = GoogleTranslator(source='en', target=target_language)
+        
+        # Chunking to avoid timeouts or API limits with large batches
+        BATCH_SIZE = 50 
+        translations = []
+        
+        print(f"DEBUG: Starting translation of {len(values)} items in batches of {BATCH_SIZE}...")
+        
+        for i in range(0, len(values), BATCH_SIZE):
+            chunk = values[i:i + BATCH_SIZE]
+            print(f"DEBUG: Processing chunk {i//BATCH_SIZE + 1}/{(len(values)-1)//BATCH_SIZE + 1}...")
+            try:
+                # Translate chunk
+                chunk_results = translator.translate_batch(chunk)
+                translations.extend(chunk_results)
+            except Exception as chunk_error:
+                print(f"DEBUG: Chunk failed: {chunk_error}")
+                # Fallback: append original values for this failed chunk
+                translations.extend(chunk)
+        
+        print(f"DEBUG: translate_batch return type: {type(translations)}")
+        if translations:
+            print(f"DEBUG: First translated item: '{translations[0]}'")
+            print(f"DEBUG: Total items translated: {len(translations)}")
+        else:
+            print("DEBUG: translate_batch returned empty/None")
+
+        for i, key in enumerate(keys):
+            # Fallback if something went wrong in matching indices
+            if i < len(translations):
+                translated_text = translations[i]
+                results[key] = translated_text
+                
+                # Check if it's the same as original (failed translation?)
+                if translated_text == values[i] and target_language != 'en':
+                     pass # print(f"DEBUG: Item {i} returned same as source")
+                
+                # Cache it
+                cache_key = f"{values[i]}_en_{target_language}"
+                translation_cache[cache_key] = translated_text
+            else:
+                results[key] = values[i]
+            
+    except Exception as e:
+        print(f"Batch translation error: {e}") # Ensure this is printed
+        # Fallback to individual translation if batch fails
+        for key, text in texts.items():
+            results[key] = translate_text(text, target_language)
+            
+    return results
 
 def translate_diagnosis_result(result: Dict, target_language: str) -> Dict:
     """

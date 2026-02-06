@@ -406,7 +406,7 @@ export default function DashboardScreen() {
           {loading ? <ActivityIndicator color="#fff" /> : (
             <>
               <ShieldAlert color="#fff" size={24} style={{ marginRight: 10 }} />
-              <Text style={styles.mainButtonText}>Analyze Disease</Text>
+              <Text style={styles.mainButtonText}>{t('analyzeDisease')}</Text>
             </>
           )}
         </TouchableOpacity>

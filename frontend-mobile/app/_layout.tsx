@@ -4,13 +4,14 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { LanguageProvider } from '../context/LanguageContext';
+import { LanguageProvider, useLanguage } from '../context/LanguageContext';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
   const { user, token, isLoading, isGuest } = useAuth();
+  const { t } = useLanguage();
   const segments = useSegments();
   const router = useRouter();
 
@@ -24,7 +25,7 @@ function RootLayoutContent() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ title: 'Login' }} />
         <Stack.Screen name="register" options={{ title: 'Register' }} />
-        <Stack.Screen name="results" options={{ title: 'Diagnosis Results', headerShown: true }} />
+        <Stack.Screen name="results" options={{ title: t('diagnosisResults'), headerShown: true }} />
         <Stack.Screen name="profile" options={{ title: 'Profile', headerShown: true }} />
       </Stack>
       <StatusBar style="auto" />

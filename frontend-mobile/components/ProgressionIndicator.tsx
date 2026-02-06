@@ -58,7 +58,7 @@ const ProgressionIndicator: React.FC<ProgressionIndicatorProps> = ({ severity, s
             {stage && (
                 <View style={styles.stageInfo}>
                     <Text style={styles.stageLabel}>{t('currentStage')}</Text>
-                    <Text style={styles.stageValue}>{stage}</Text>
+                    <Text style={styles.stageValue}>{stage ? (t(`stage_${stage.split(' ')[0].toLowerCase()}` as any) || stage) : ''}</Text>
                 </View>
             )}
         </View>
