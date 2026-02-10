@@ -46,7 +46,7 @@ This project is a comprehensive, farmer-friendly mobile and web application for 
 Key features include:
 
 *   **Real-time Detection**: powered by deep learning models.
-*   **Multilingual Support**: English, Hindi, Telugu, Tamil, Kannada, Marathi.
+*   **Multilingual Support**: English, Hindi, Telugu, Tamil, Kannada, Marathi, Malayalam, Tulu.
 *   **Treatment Recommendations**: Pesticide & Organic options.
 *   **Chatbot Assistant**: AI-powered (Gemini) farming queries.
 *   **Offline Capability**: Essential features work without internet.
