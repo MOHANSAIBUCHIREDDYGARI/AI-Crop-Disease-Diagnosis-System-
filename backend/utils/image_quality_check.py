@@ -79,14 +79,14 @@ def check_image_quality(image_path: str) -> Dict[str, any]:
               f"Valid: {is_valid}")
         
         result = {
-            'is_valid': bool(is_valid),
-            'quality_score': float(round(quality_score, 3)),
-            'blur_score': float(round(blur_score, 3)),
-            'brightness_score': float(round(brightness_score, 3)),
-            'contrast_score': float(round(contrast_score, 3)),
+            'is_valid': is_valid,
+            'quality_score': round(quality_score, 3),
+            'blur_score': round(blur_score, 3),
+            'brightness_score': round(brightness_score, 3),
+            'contrast_score': round(contrast_score, 3),
             'dimensions': (width, height),
-            'brightness': float(round(brightness, 1)),
-            'laplacian_variance': float(round(laplacian_var, 1))
+            'brightness': round(brightness, 1),
+            'laplacian_variance': round(laplacian_var, 1)
         }
         
         if not is_valid:
@@ -170,20 +170,3 @@ def enhance_image_quality(image_path: str, output_path: str = None) -> str:
     cv2.imwrite(output_path, enhanced)
     
     return output_path
-
-def check_content_validity(image_path: str) -> Dict[str, any]:
-    """
-    Check if the image content appears valid (e.g. not a blank image).
-    """
-    try:
-        img = cv2.imread(image_path)
-        if img is None:
-             return {'is_valid': False, 'reason': 'Cannot read image file'}
-        
-        # Basic check: ensure it has some variance (not a single color)
-        if np.std(img) < 5: # Very low variance means almost solid color
-             return {'is_valid': False, 'reason': 'Image has too little detail (blank or solid color)'}
-             
-        return {'is_valid': True}
-    except Exception as e:
-        return {'is_valid': False, 'reason': f'Error checking content: {str(e)}'}

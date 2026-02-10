@@ -27,16 +27,13 @@ chatbot_bp = Blueprint('chatbot', __name__)
 if GEMINI_AVAILABLE and settings.GOOGLE_GEMINI_API_KEY:
     try:
         genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
-        model_name = 'gemini-2.5-flash'
-        model = genai.GenerativeModel(model_name)
-        print(f"DEBUG: Initialized Gemini Model: {model_name}")
-    except Exception as e:
-        print(f"DEBUG: Failed to initialize Gemini: {e}")
+        model = genai.GenerativeModel('gemini-pro')
+    except:
         model = None
 else:
     model = None
 
-def get_chatbot_response(message: str, language: str = 'en', context: str = '', image_path: str = None) -> str:
+def get_chatbot_response(message: str, language: str = 'en', context: str = '') -> str:
     """
     Get a helpful response from the chatbot using Google Gemini AI, 
     or fall back to pre-written answers if AI isn't working.
@@ -45,7 +42,6 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '', 
         message: The question asked by the user
         language: The language they are speaking (e.g., 'hi' for Hindi)
         context: Any extra info we know (like "User just found Early Blight on Tomato")
-        image_path: Path to an uploaded image (optional)
         
     Returns:
         The chatbot's answer
@@ -54,7 +50,7 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '', 
     # Tell the AI exactly how to behave - like a friendly expert farmer!
     system_prompt = f"""You are an expert agricultural assistant specializing in crop disease management for Indian farmers.
 
-**Your Expertise:** Crop Diseases (Tomato, Rice, Wheat, Cotton, Grape, Potato, Corn), Treatment Methods, Prevention Strategies, Cost-Effective Solutions, Weather-Based Advice, Organic Farming.
+**Your Expertise:** Crop Diseases (Tomato, Rice, Wheat, Cotton), Treatment Methods, Prevention Strategies, Cost-Effective Solutions, Weather-Based Advice, Organic Farming.
 
 **Supported Crops & Common Diseases:**
 
@@ -66,15 +62,7 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '', 
 
 **Cotton:** Bacterial Blight (Streptocycline), Leaf Curl Virus, Leaf Hopper/Jassids (Imidacloprid).
 
-**Grape:** Black Rot (Mancozeb 2.5g/L), Black Measles/Esca (Lime Sulfur), Leaf Blight (Copper oxychloride 3g/L), Downy Mildew (Metalaxyl).
-
-**Potato:** Early Blight (Mancozeb 2.5g/L), Late Blight (Cymoxanil+Mancozeb), Bacterial Wilt.
-
-**Corn:** Northern Leaf Blight (Mancozeb 2.5g/L), Common Rust (Chlorothalonil 2ml/L), Gray Leaf Spot.
-
 **Treatment Guidelines:** Early Stage (0-30%): Organic treatments. Medium (30-60%): Organic+Chemical. Severe (60%+): Immediate chemical intervention.
-
-**Organic Alternatives:** Neem Oil (5ml/L), Trichoderma, Bacillus thuringiensis, Bordeaux Mixture (1%), Garlic-Chili spray.
 
 **Organic Alternatives:** Neem Oil (5ml/L), Trichoderma, Bacillus thuringiensis, Bordeaux Mixture (1%), Garlic-Chili spray.
 
@@ -82,11 +70,7 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '', 
 
 {context}
 
-**Response Guidelines:** 
-1. If an image is provided, FIRST identify the crop and any visible disease or pest.
-2. If the crop is healthy, say so.
-3. If a disease is found, provide the diagnosis, confidence level (high/medium/low), and immediate treatment recommendations.
-4. Keep answers practical, provide specific dosages, include organic options, mention timing, warn about safety, suggest cost-effective solutions.
+**Response Guidelines:** Keep answers practical, provide specific dosages, include organic options, mention timing, warn about safety, suggest cost-effective solutions.
 """
     
     # If the AI model is ready, let's use it!
@@ -103,30 +87,7 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '', 
             
             # Combine the system instructions, user's question, and context into one big prompt
             full_prompt = system_prompt + "\nUser: " + message_en + "\nAssistant:"
-            
-            content_parts = [full_prompt]
-            
-            # If there is an image, load it and add to content parts
-            if image_path and os.path.exists(image_path):
-                try:
-                    import PIL.Image
-                    img = PIL.Image.open(image_path)
-                    content_parts.append(img)
-                    print(f"DEBUG: Added image to prompt: {image_path}")
-                except Exception as img_err:
-                    print(f"DEBUG: Failed to load image: {img_err}")
-
-            # For Gemini Pro Vision (or gemini-1.5-flash which handles both), input is list
-            # Note: 'gemini-pro' (text-only) might fail with images? 
-            # We should probably use 'gemini-1.5-flash' or check model capabilities.
-            # Assuming the configured model supports it or we need a vision model.
-            # If current model is text-only, we might need to switch or instantiate a vision model here.
-            
-            # Let's check configuration. Ideally strictly use gemini-1.5-flash for everything now.
-            # For now, pass list. genai handles it if model is correct.
-            
-            print(f"DEBUG: Using Gemini model for inference: {model_name}") 
-            response = model.generate_content(content_parts)
+            response = model.generate_content(full_prompt)
             answer = response.text
             
             
@@ -136,27 +97,18 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '', 
             
             return answer
         except Exception as e:
-            print(f"Gemini API error with model {model_name}: {e}")
+            print(f"Gemini API error: {e}")
             # If the AI fails, don't panic! Use the simple backup system.
-            return get_fallback_response(message, language, context)
+            return get_fallback_response(message, language)
     else:
         # If AI isn't configured, use the backup system
-        return get_fallback_response(message, language, context)
+        return get_fallback_response(message, language)
 
-def get_fallback_response(message: str, language: str = 'en', context: str = '') -> str:
+def get_fallback_response(message: str, language: str = 'en') -> str:
     """
     A smart dictionary of pre-written agricultural advice.
     This works even if the internet is slow or the AI is down.
     """
-    # If we have a local diagnosis (context), that's the best answer!
-    if context and "Correctly identified" in context:
-        # We can add a little more flavor or just return it
-        response = context + "\n\n" + "Recommended Action: Please consult the treatment section for detailed advice."
-        
-        if language != 'en':
-             response = translate_text(response, language)
-        return response
-
     message_lower = message.lower()
     
     
@@ -209,10 +161,6 @@ def get_fallback_response(message: str, language: str = 'en', context: str = '')
     
     return response
 
-# Ensure we can find the ML models (just like in diagnosis.py)
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'ml'))
-from final_predictor import identify_and_predict
-
 @chatbot_bp.route('/message', methods=['POST'])
 def send_message():
     """Endpoint for the app to send messages to the chatbot (login is optional)"""
@@ -237,52 +185,44 @@ def send_message():
         
         data = request.get_json()
         message = data.get('message', '').strip()
-        image_path = data.get('image_path')
+        
         
         # Or if the app explicitly tells us the language, use that
         if 'language' in data:
             language = data.get('language', 'en')
         
-        # Message is optional if image is present?
-        # Re-allow empty message if image is there?
-        if not message and not image_path:
-            return jsonify({'error': 'Message or image is required'}), 400
-        
         if not message:
-             message = "Analyze this image" # Default placeholder
+            return jsonify({'error': 'Message is required'}), 400
         
         
         context = ''
         
-        # --- LOCAL DIAGNOSIS REMOVED (User requested Gemini for identification) ---
         
         # If the user is looking at a specific diagnosis, tell the chatbot about it
-        # BUT: If the user uploaded a NEW image, ignore history so we don't confuse the model (e.g. Tomato image vs previous Grape diagnosis)
-        if not image_path:
-            diagnosis_context = data.get('diagnosis_context')
-            if diagnosis_context:
-                
-                crop = diagnosis_context.get('crop', '')
-                disease = diagnosis_context.get('disease', '')
-                severity = diagnosis_context.get('severity_percent', 0)
-                if crop and disease:
-                    context = f"User's current diagnosis: {crop} with {disease} at {severity}% severity."
-            elif user_id:
-                
-                # Or fetch their latest diagnosis from history
-                recent_diagnosis = db.execute_query(
-                    '''SELECT crop, disease, severity_percent FROM diagnosis_history 
-                       WHERE user_id = ? ORDER BY created_at DESC LIMIT 1''',
-                    (user_id,)
-                )
-                
-                if recent_diagnosis:
-                    d = recent_diagnosis[0]
-                    context = f"User's recent diagnosis: {d['crop']} with {d['disease']} at {d['severity_percent']}% severity."
+        diagnosis_context = data.get('diagnosis_context')
+        if diagnosis_context:
+            
+            crop = diagnosis_context.get('crop', '')
+            disease = diagnosis_context.get('disease', '')
+            severity = diagnosis_context.get('severity_percent', 0)
+            if crop and disease:
+                context = f"User's current diagnosis: {crop} with {disease} at {severity}% severity."
+        elif user_id:
+            
+            # Or fetch their latest diagnosis from history
+            recent_diagnosis = db.execute_query(
+                '''SELECT crop, disease, severity_percent FROM diagnosis_history 
+                   WHERE user_id = ? ORDER BY created_at DESC LIMIT 1''',
+                (user_id,)
+            )
+            
+            if recent_diagnosis:
+                d = recent_diagnosis[0]
+                context = f"User's recent diagnosis: {d['crop']} with {d['disease']} at {d['severity_percent']}% severity."
         
         
         # Get the answer!
-        response_text = get_chatbot_response(message, language, context, image_path)
+        response_text = get_chatbot_response(message, language, context)
         
         
         # Save the conversation if the user is logged in
@@ -345,57 +285,4 @@ def get_chat_history():
         return jsonify({'history': chat_list}), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@chatbot_bp.route('/upload', methods=['POST'])
-def upload_image():
-    """
-    Handle image uploads for the chatbot.
-    """
-    try:
-        # Check if the post request has the file part
-        if 'image' not in request.files:
-            return jsonify({'error': 'No file part'}), 400
-            
-        file = request.files['image']
-        
-        # If user does not select file, browser also
-        # submit an empty part without filename
-        if file.filename == '':
-            return jsonify({'error': 'No selected file'}), 400
-            
-        if file:
-            # Secure the filename
-            from werkzeug.utils import secure_filename
-            import datetime
-            
-            filename = secure_filename(file.filename)
-            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-            
-            # Use user_id if available, else anonymous
-            user_id = "anonymous"
-            auth_header = request.headers.get('Authorization')
-            if auth_header and auth_header.startswith('Bearer '):
-                 try:
-                     token = auth_header.split(' ')[1]
-                     token_data = verify_token(token)
-                     if token_data['valid']:
-                         user_id = str(token_data['user_id'])
-                 except:
-                     pass
-
-            unique_filename = f"chat_{user_id}_{timestamp}_{filename}"
-            
-            filepath = os.path.join(settings.UPLOAD_FOLDER, unique_filename)
-            file.save(filepath)
-            
-            # Return the file path (relative or absolute depending on how you want to use it)
-            # For chatbot context, absolute path is fine as we'll read it back
-            return jsonify({
-                'message': 'File uploaded successfully',
-                'file_path': filepath
-            }), 200
-            
-    except Exception as e:
-        print(f"Upload error: {e}")
         return jsonify({'error': str(e)}), 500

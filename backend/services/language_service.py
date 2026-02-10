@@ -62,57 +62,59 @@ def translate_batch(texts: Dict[str, str], target_language: str) -> Dict[str, st
         
     results = {}
     
-    # helper for threaded execution
-    def translate_single_item(item):
-        key, text = item
-        
-        # 1. Check cache first (thread-safe enough for this)
-        cache_key = f"{text}_en_{target_language}"
-        if cache_key in translation_cache:
-            return key, translation_cache[cache_key]
-            
-        # 2. Translate
-        try:
-            # Create a fresh translator for thread safety if needed, or share one
-            # deep_translator instances seem to be stateless enough
-            translator = GoogleTranslator(source='en', target=target_language)
-            translated_text = translator.translate(text)
-            
-            # Update cache
-            translation_cache[cache_key] = translated_text
-            return key, translated_text
-            
-        except Exception as e:
-            print(f"DEBUG: Failed to translate item '{key}': {e}")
-            return key, text
-
     try:
-        from concurrent.futures import ThreadPoolExecutor, as_completed
+        keys = list(texts.keys())
+        values = list(texts.values())
         
-        total_items = len(texts)
-        print(f"DEBUG: Processing {total_items} items with ThreadPoolExecutor...")
+        # deep-translator handles batch translation efficiently
+        translator = GoogleTranslator(source='en', target=target_language)
         
-        # specific max_workers to avoid hitting rate limits too hard
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            future_to_key = {executor.submit(translate_single_item, (k, v)): k for k, v in texts.items()}
-            
-            completed_count = 0
-            for future in as_completed(future_to_key):
-                key, result = future.result()
-                results[key] = result
+        # Chunking to avoid timeouts or API limits with large batches
+        BATCH_SIZE = 50 
+        translations = []
+        
+        print(f"DEBUG: Starting translation of {len(values)} items in batches of {BATCH_SIZE}...")
+        
+        for i in range(0, len(values), BATCH_SIZE):
+            chunk = values[i:i + BATCH_SIZE]
+            print(f"DEBUG: Processing chunk {i//BATCH_SIZE + 1}/{(len(values)-1)//BATCH_SIZE + 1}...")
+            try:
+                # Translate chunk
+                chunk_results = translator.translate_batch(chunk)
+                translations.extend(chunk_results)
+            except Exception as chunk_error:
+                print(f"DEBUG: Chunk failed: {chunk_error}")
+                # Fallback: append original values for this failed chunk
+                translations.extend(chunk)
+        
+        print(f"DEBUG: translate_batch return type: {type(translations)}")
+        if translations:
+            print(f"DEBUG: First translated item: '{translations[0]}'")
+            print(f"DEBUG: Total items translated: {len(translations)}")
+        else:
+            print("DEBUG: translate_batch returned empty/None")
+
+        for i, key in enumerate(keys):
+            # Fallback if something went wrong in matching indices
+            if i < len(translations):
+                translated_text = translations[i]
+                results[key] = translated_text
                 
-                completed_count += 1
-                if completed_count % 10 == 0:
-                     print(f"DEBUG: Processed {completed_count}/{total_items} items...")
-
-        print(f"DEBUG: Batch translation complete. Translated {len(results)} items.")
-
+                # Check if it's the same as original (failed translation?)
+                if translated_text == values[i] and target_language != 'en':
+                     pass # print(f"DEBUG: Item {i} returned same as source")
+                
+                # Cache it
+                cache_key = f"{values[i]}_en_{target_language}"
+                translation_cache[cache_key] = translated_text
+            else:
+                results[key] = values[i]
+            
     except Exception as e:
-        print(f"Batch translation critical error: {e}")
-        # Fallback to original texts for anything not yet processed
+        print(f"Batch translation error: {e}") # Ensure this is printed
+        # Fallback to individual translation if batch fails
         for key, text in texts.items():
-            if key not in results:
-                results[key] = text
+            results[key] = translate_text(text, target_language)
             
     return results
 
@@ -293,9 +295,3 @@ def get_all_translations(target_language: str) -> Dict[str, str]:
                     result_dict[key] = en_text
                     
     return result_dict
-
-def get_translated_ui_labels(language: str) -> Dict[str, str]:
-    """
-    Alias for get_all_translations for backward compatibility
-    """
-    return get_all_translations(language)

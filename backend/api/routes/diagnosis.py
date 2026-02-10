@@ -3,8 +3,6 @@ import os
 import sys
 from werkzeug.utils import secure_filename
 import datetime
-import google.generativeai as genai
-import json
 
 # Cleanly add the project root to our python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -32,94 +30,6 @@ diagnosis_bp = Blueprint('diagnosis', __name__)
 def allowed_file(filename):
     """Check if the uploaded file has a valid extension (like .jpg or .png)"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in settings.ALLOWED_EXTENSIONS
-
-# Configure Gemini
-if settings.GOOGLE_GEMINI_API_KEY:
-    genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
-
-def analyze_with_gemini(image_path, crop, language):
-    """
-    Fallback: Use Gemini to diagnose the crop if local model fails.
-    Returns: (prediction_result, extra_data)
-    """
-    try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
-        # Load image
-        import PIL.Image
-        img = PIL.Image.open(image_path)
-        
-        prompt = f"""
-        You are an expert agricultural botanist. 
-        Analyze this image of a {crop} plant.
-        Identify the disease (or if it is healthy).
-        
-        Return EXCLUSIVELY a JSON object with this exact structure (no markdown, no backticks):
-        {{
-            "disease": "Name of disease or 'Healthy'",
-            "confidence": 95.5,
-            "severity_percent": 45.0,
-            "stage": "Early Stage", 
-            "description": "Brief description of the issue in {language}",
-            "symptoms": ["Symptom 1", "Symptom 2"],
-            "prevention_steps": ["Step 1", "Step 2"],
-            "recommended_pesticides": [
-                {{
-                    "name": "Pesticide Name",
-                    "dosage_per_acre": "e.g. 200ml",
-                    "frequency": "Every 7 days",
-                    "cost_per_liter": 500,
-                    "is_organic": false,
-                    "warnings": "Wear gloves"
-                }}
-            ]
-        }}
-        
-        Valid stages: 'Healthy Stage', 'Early Stage', 'Moderate Stage', 'Severe Stage'.
-        If healthy, set confidence high, severity 0.
-        """
-        
-        print("DEBUG: Sending request to Gemini...")
-        response = model.generate_content([prompt, img])
-        text = response.text.strip()
-        
-        # Cleanup markdown if present
-        if text.startswith("```json"):
-            text = text[7:]
-        if text.startswith("```"):
-            text = text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
-            
-        data = json.loads(text.strip())
-        
-        # Normalize structure
-        prediction = {
-            "crop": crop,
-            "disease": data.get("disease", "Unknown"),
-            "confidence": float(data.get("confidence", 0.0)),
-            "severity_percent": float(data.get("severity_percent", 0.0)),
-            "stage": data.get("stage", "Unknown")
-        }
-        
-        extra_data = {
-            "disease_info": {
-                "description": data.get("description", ""),
-                "symptoms": data.get("symptoms", []),
-                "prevention_steps": data.get("prevention_steps", [])
-            },
-            "pesticide_recommendations": {
-                "treatment_approach": "Gemini Recommended Treatment",
-                "application_note": "Please follow label instructions.",
-                "recommended_pesticides": data.get("recommended_pesticides", [])
-            }
-        }
-        
-        return prediction, extra_data
-        
-    except Exception as e:
-        print(f"Gemini Fallback Error: {e}")
-        raise e
 
 @diagnosis_bp.route('/detect', methods=['POST'])
 def detect_disease():
@@ -176,10 +86,9 @@ def detect_disease():
         # Identify the crop (e.g., tomato, rice)
         crop = request.form.get('crop', '').lower()
         print(f"DEBUG: Crop value: '{crop}'")
-        # Hybrid support: any string is allowed if Gemini handles it, but frontend limits selection.
-        if not crop:
+        if not crop or crop not in ['grape', 'maize', 'potato', 'rice', 'tomato']:
             print(f"DEBUG: Invalid crop: '{crop}'")
-            return jsonify({'error': 'Valid crop type required'}), 400
+            return jsonify({'error': 'Valid crop type required (tomato, cotton)'}), 400
         
         
         # Get location for weather-based advice (optional)
@@ -216,7 +125,7 @@ def detect_disease():
                     'message': quality_result.get('reason'),
                     'details': 'Image dimensions are invalid.'
                 }), 400
- 
+
             
             # For other issues like blurriness, explain why
             error_msg = quality_result.get('reason', 'Image quality too low')
@@ -229,11 +138,11 @@ def detect_disease():
                     details_msg = translate_text(details_msg, language)
                 except:
                     pass
- 
+
             
             if os.path.exists(filepath):
                 os.remove(filepath)
- 
+
             return jsonify({
                 'error': 'Image Rejected',
                 'message': error_msg,
@@ -268,93 +177,69 @@ def detect_disease():
             }), 400
         
         
-        # --- AI PREDICTION (HYBRID) ---
+        # --- AI PREDICTION ---
         print(f"DEBUG: Starting disease prediction for crop: {crop}")
-        
-        prediction_result = None
-        disease_data = {}
-        pesticide_recommendations = {}
-        used_gemini = False
-        
-        try:
-            # Try Local Model First
-            prediction_result = full_prediction(filepath, crop)
-            print(f"DEBUG: Local model success: {prediction_result}")
-        except (ValueError, FileNotFoundError) as e:
-            # Fallback to Gemini if supported
-            print(f"DEBUG: Local model unavailable ({e}). Attempting Gemini fallback...")
-            
-            if settings.GOOGLE_GEMINI_API_KEY:
-                try:
-                    prediction_result, gemini_extra = analyze_with_gemini(filepath, crop, language)
-                    disease_data = gemini_extra['disease_info']
-                    pesticide_recommendations = gemini_extra['pesticide_recommendations']
-                    used_gemini = True
-                    print(f"DEBUG: Gemini fallback success: {prediction_result}")
-                except Exception as g_err:
-                    print(f"DEBUG: Gemini fallback failed: {g_err}")
-                    # If both fail, report the original error
-                    return jsonify({'error': f'Model not found for {crop} and fallback failed.'}), 500
-            else:
-                 return jsonify({'error': f'Model not found for {crop} and no API key for fallback.'}), 500
-        except Exception as e:
-            # Unexpected error
-            print(f"DEBUG: Unexpected error in prediction: {e}")
-            return jsonify({'error': str(e)}), 500
+        prediction_result = full_prediction(filepath, crop)
+        print(f"DEBUG: Prediction result: {prediction_result}")
 
         
+        # (Optional code block for confidence thresholds was skipped here for now)
+        if False: 
+            pass # Placeholder
         
-        # --- GATHER INFORMATION (Only if Local) ---
-        if not used_gemini:
-            # 1. Get detailed info about the disease from our database
-            try:
-                disease_info = db.execute_query(
-                    'SELECT * FROM diseases WHERE crop = ? AND disease_name = ?',
-                    (crop, prediction_result['disease'])
-                )
+        
+        # --- GATHER INFORMATION ---
+        # 1. Get detailed info about the disease from our database
+        disease_data = {}
+        try:
+            disease_info = db.execute_query(
+                'SELECT * FROM diseases WHERE crop = ? AND disease_name = ?',
+                (crop, prediction_result['disease'])
+            )
+            
+            if disease_info:
+                disease_data = {
+                    'description': disease_info[0]['description'],
+                    'symptoms': disease_info[0]['symptoms'],
+                    'prevention_steps': disease_info[0]['prevention_steps']
+                }
                 
-                if disease_info:
-                    disease_data = {
-                        'description': disease_info[0]['description'],
-                        'symptoms': disease_info[0]['symptoms'],
-                        'prevention_steps': disease_info[0]['prevention_steps']
-                    }
-                    
-                    # Translate it
-                    disease_data = translate_disease_info(disease_data, language)
-            except Exception as e:
-                print(f"DEBUG: Error getting disease info: {e}")
-                disease_data = {}
+                # Translate it
+                disease_data = translate_disease_info(disease_data, language)
+        except Exception as e:
+            print(f"DEBUG: Error getting disease info: {e}")
+            disease_data = {}
+        
+        
+        # 2. Get pesticide recommendations based on severity
+        pesticide_recommendations = {}
+        try:
+            pesticide_recommendations = get_severity_based_recommendations(
+                prediction_result['disease'],
+                prediction_result['severity_percent'],
+                crop
+            )
             
             
-            # 2. Get pesticide recommendations based on severity
-            try:
-                pesticide_recommendations = get_severity_based_recommendations(
-                    prediction_result['disease'],
-                    prediction_result['severity_percent'],
-                    crop
-                )
+            # Translate recommendations if needed
+            if language != 'en' and pesticide_recommendations:
+                if 'treatment_approach' in pesticide_recommendations:
+                    pesticide_recommendations['treatment_approach'] = translate_text(
+                        pesticide_recommendations['treatment_approach'], language
+                    )
+                if 'application_note' in pesticide_recommendations:
+                    pesticide_recommendations['application_note'] = translate_text(
+                        pesticide_recommendations['application_note'], language
+                    )
                 
-                
-                # Translate recommendations if needed
-                if language != 'en' and pesticide_recommendations:
-                    if 'treatment_approach' in pesticide_recommendations:
-                        pesticide_recommendations['treatment_approach'] = translate_text(
-                            pesticide_recommendations['treatment_approach'], language
-                        )
-                    if 'application_note' in pesticide_recommendations:
-                        pesticide_recommendations['application_note'] = translate_text(
-                            pesticide_recommendations['application_note'], language
-                        )
-                    
-                    new_pests = []
-                    for pest in pesticide_recommendations.get('recommended_pesticides', []):
-                        new_pests.append(translate_pesticide_info(pest, language))
-                    pesticide_recommendations['recommended_pesticides'] = new_pests
-    
-            except Exception as e:
-                print(f"DEBUG: Error getting pesticide recommendations: {e}")
-                pesticide_recommendations = {'recommended_pesticides': []}
+                new_pests = []
+                for pest in pesticide_recommendations.get('recommended_pesticides', []):
+                    new_pests.append(translate_pesticide_info(pest, language))
+                pesticide_recommendations['recommended_pesticides'] = new_pests
+
+        except Exception as e:
+            print(f"DEBUG: Error getting pesticide recommendations: {e}")
+            pesticide_recommendations = {'recommended_pesticides': []}
         
         
         # 3. Get weather advice if we have location
@@ -413,11 +298,7 @@ def detect_disease():
         
         
         # Translate the prediction labels (like "Healthy" or "Early Blight")
-        # Only if local model was used, OR if Gemini returned English but user wanted something else
-        if language != 'en' and not used_gemini:
-             translated_result = translate_diagnosis_result(prediction_result, language)
-        else:
-             translated_result = prediction_result
+        translated_result = translate_diagnosis_result(prediction_result, language)
         
         
         # Get UI text (buttons, labels)
