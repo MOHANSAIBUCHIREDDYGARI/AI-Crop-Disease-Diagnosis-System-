@@ -129,6 +129,47 @@ export const Translations = {
         earlyDetectionTip: "✓ Early detection! Treatment is most effective at this stage.",
         moderateInfectionTip: "⚠ Moderate infection. Immediate treatment recommended.",
         severeInfectionTip: "🚨 Severe infection. Urgent treatment required to prevent crop loss.",
+        // Explore Page
+        exploreTitle: "Explore",
+        exploreSubtitle: "Your guide to healthy crops & farming success 🌱",
+
+        // Sections
+        cropsDiagnoseTitle: "Crops We Diagnose",
+        cropsDiagnoseSubtitle: "Tap to learn more about each crop",
+        commonThreatsTitle: "Common Threats",
+        commonThreatsSubtitle: "Know your enemy to protect your crops",
+        dailyTipTitle: "💡 Daily Farming Tip",
+        dailyTipBadge: "Today",
+        detailedGuidesTitle: "Detailed Guides",
+        detailedGuidesSubtitle: "Expert tips for successful farming",
+
+        // Diseases
+        earlyBlightName: "Early Blight",
+        earlyBlightDesc: "Dark concentric rings on older leaves. Needs fungicide.",
+        lateBlightName: "Late Blight",
+        lateBlightDesc: "Water-soaked spots, white mold. Highly destructive.",
+        leafMoldName: "Leaf Mold",
+        leafMoldDesc: "Yellow spots on top, olive mold underneath. High humidity.",
+        rustName: "Rust",
+        rustDesc: "Orange/brown pustules. Common in grains.",
+
+        // Daily Tip
+        dailyTipContent: "Water your plants early in the morning. This allows leaves to dry quickly as the sun rises, preventing fungal diseases like blight and mildew.",
+
+        // Guides
+        preventionStrategies: "🛡️ Prevention Strategies",
+        cropRotation: "Crop Rotation",
+        cropRotationDesc: "Don't plant same family in same spot back-to-back.",
+        properSpacing: "Proper Spacing",
+        properSpacingDesc: "Let air flow between plants to dry leaves.",
+        mulching: "Mulching",
+        mulchingDesc: "Prevents soil-borne spores from splashing up.",
+
+        usingTheApp: "📱 Using the App",
+        guideStep1: "Select your crop from the list",
+        guideStep2: "Take a clear photo of the *affected leaf*",
+        guideStep3: "Avoid blurry images or bad lighting",
+        guideStep4: "Review diagnosis and cost estimates",
     },
 };
 

@@ -79,28 +79,38 @@ def translate_batch(texts, target_language):
         cache[target_language] = {}
     
     language_cache = cache[target_language]
-    missing_translations = {}
+    missing_texts = set()
+    results = {}
     
-    # Identify what needs to be translated
+    # Identify what needs to be translated (check cache by TEXT value, not key)
     for key, text in texts.items():
-        if key not in language_cache:
-            missing_translations[key] = text
+        if not text:
+            results[key] = ""
+            continue
             
-    if not missing_translations:
+        # Check if the text itself is in the cache
+        if text in language_cache:
+            results[key] = language_cache[text]
+        else:
+            missing_texts.add(text)
+            
+    if not missing_texts:
         # All found in cache
-        return {key: language_cache.get(key, texts[key]) for key in texts}
+        return results
     
     # Process missing translations in parallel chunks
     # Chunk size of 5 for parallel execution as requested
     BATCH_SIZE = 5
     chunks = []
-    items = list(missing_translations.items())
+    missing_list = list(missing_texts)
     
-    for i in range(0, len(items), BATCH_SIZE):
-        chunk_items = items[i:i + BATCH_SIZE]
-        chunks.append(dict(chunk_items))
+    for i in range(0, len(missing_list), BATCH_SIZE):
+        # Create a dict chunk for the translator helper: {original_text: original_text}
+        # The helper expects {key: text}, so we use text as key to easily map back
+        chunk_items = {text: text for text in missing_list[i:i + BATCH_SIZE]}
+        chunks.append(chunk_items)
         
-    print(f"Translating {len(missing_translations)} items in {len(chunks)} parallel batches...")
+    print(f"Translating {len(missing_texts)} unique items in {len(chunks)} parallel batches...")
     
     new_translations = {}
     
@@ -119,12 +129,12 @@ def translate_batch(texts, target_language):
     cache[target_language] = language_cache
     save_cache(cache)
     
-    # Return full result
-    full_result = {}
-    for key in texts:
-        full_result[key] = language_cache.get(key, texts[key])
+    # Populate results for the missing items from the now-updated cache (or new_translations directly)
+    for key, text in texts.items():
+        if key not in results: # It was missing
+            results[key] = new_translations.get(text, text) # Fallback to original if completely failed
         
-    return full_result
+    return results
 
 def translate_diagnosis_result(result, target_language):
     """
@@ -211,3 +221,11 @@ def translate_text(text, target_language, source_language='auto'):
     except Exception as e:
         print(f"Error translating text: {e}")
         return text
+
+def get_translated_ui_labels(target_language):
+    """
+    Retrieves all translated UI labels for a given language.
+    This is essentially a wrapper around get_all_translations,
+    exposed for the user API to fetch entire translation sets.
+    """
+    return get_all_translations(target_language)
