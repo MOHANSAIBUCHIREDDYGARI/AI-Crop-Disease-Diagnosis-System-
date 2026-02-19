@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvo
 import { useRouter } from 'expo-router';
 import { Mail, Lock, User, Leaf } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
 export default function LoginScreen() {
@@ -10,11 +11,12 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const { signIn, continueAsGuest } = useAuth();
+    const { t } = useLanguage();
     const router = useRouter();
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please enter both email and password');
+            Alert.alert(t('error'), t('loginErrorMissingFields'));
             return;
         }
 
@@ -24,8 +26,8 @@ export default function LoginScreen() {
             await signIn(response.data.token, response.data.user);
             router.replace('/(tabs)');
         } catch (error: any) {
-            const message = error.response?.data?.error || 'Login failed. Please check your credentials.';
-            Alert.alert('Login Failed', message);
+            const message = error.response?.data?.error || t('loginFailedDefault');
+            Alert.alert(t('loginFailedTitle'), message);
         } finally {
             setLoading(false);
         }
@@ -41,8 +43,8 @@ export default function LoginScreen() {
                     <View style={styles.logoContainer}>
                         <Leaf color="#4caf50" size={48} />
                     </View>
-                    <Text style={styles.title}>AI Crop Diagnosis</Text>
-                    <Text style={styles.subtitle}>Protect your crops with AI-powered insights</Text>
+                    <Text style={styles.title}>{t('appName')}</Text>
+                    <Text style={styles.subtitle}>{t('appSubtitle')}</Text>
                 </View>
 
                 <View style={styles.form}>
@@ -50,7 +52,7 @@ export default function LoginScreen() {
                         <Mail size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Email Address"
+                            placeholder={t('emailPlaceholder')}
                             value={email}
                             onChangeText={setEmail}
                             keyboardType="email-address"
@@ -62,7 +64,7 @@ export default function LoginScreen() {
                         <Lock size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Password"
+                            placeholder={t('passwordPlaceholder')}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -77,7 +79,7 @@ export default function LoginScreen() {
                         {loading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.loginButtonText}>Login</Text>
+                            <Text style={styles.loginButtonText}>{t('loginButton')}</Text>
                         )}
                     </TouchableOpacity>
 
@@ -88,13 +90,13 @@ export default function LoginScreen() {
                             router.replace('/(tabs)');
                         }}
                     >
-                        <Text style={styles.guestButtonText}>Continue as Guest</Text>
+                        <Text style={styles.guestButtonText}>{t('continueGuest')}</Text>
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Don't have an account? </Text>
+                        <Text style={styles.footerText}>{t('noAccount')}</Text>
                         <TouchableOpacity onPress={() => router.push('/register')}>
-                            <Text style={styles.footerLink}>Register Now</Text>
+                            <Text style={styles.footerLink}>{t('registerNow')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

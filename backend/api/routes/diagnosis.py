@@ -128,6 +128,8 @@ def detect_disease():
                 'symptoms': disease_info[0]['symptoms'],
                 'prevention_steps': disease_info[0]['prevention_steps']
             }
+            # Clean disease name for better translation
+            cleaned_disease_name = prediction_result['disease'].replace('___', ': ').replace('_', ' ')
             # Translate disease info
             disease_data = translate_disease_info(disease_data, language)
         
@@ -182,8 +184,15 @@ def detect_disease():
                     )
                 )
         
+        # Prepare result for translation and response
+        # We use a copy for the response so we don't mess up the DB record logic if it were used later
+        response_prediction = prediction_result.copy()
+        
+        # Prettify disease name
+        response_prediction['disease'] = response_prediction['disease'].replace('___', ': ').replace('_', ' ')
+        
         # Translate result
-        translated_result = translate_diagnosis_result(prediction_result, language)
+        translated_result = translate_diagnosis_result(response_prediction, language)
         
         # Generate voice output
         voice_file = generate_diagnosis_voice(translated_result, language)

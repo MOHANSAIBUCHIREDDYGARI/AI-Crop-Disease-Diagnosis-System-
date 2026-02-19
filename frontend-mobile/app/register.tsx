@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingVi
 import { useRouter } from 'expo-router';
 import { Mail, Lock, User, Leaf, Phone, Map } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
 export default function RegisterScreen() {
@@ -12,11 +13,12 @@ export default function RegisterScreen() {
     const [farmSize, setFarmSize] = useState('');
     const [loading, setLoading] = useState(false);
     const { signIn } = useAuth();
+    const { t } = useLanguage();
     const router = useRouter();
 
     const handleRegister = async () => {
         if (!email || !password || !name) {
-            Alert.alert('Error', 'Please fill in all required fields');
+            Alert.alert(t('error'), t('registerErrorMissingFields'));
             return;
         }
 
@@ -32,8 +34,8 @@ export default function RegisterScreen() {
             await signIn(response.data.token, response.data.user);
             router.replace('/(tabs)');
         } catch (error: any) {
-            const message = error.response?.data?.error || 'Registration failed. Please try again.';
-            Alert.alert('Error', message);
+            const message = error.response?.data?.error || t('registerFailedDefault');
+            Alert.alert(t('error'), message);
         } finally {
             setLoading(false);
         }
@@ -46,8 +48,8 @@ export default function RegisterScreen() {
         >
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>Create Account</Text>
-                    <Text style={styles.subtitle}>Join thousands of farmers protecting their livelihood</Text>
+                    <Text style={styles.title}>{t('registerTitle')}</Text>
+                    <Text style={styles.subtitle}>{t('registerSubtitle')}</Text>
                 </View>
 
                 <View style={styles.form}>
@@ -55,7 +57,7 @@ export default function RegisterScreen() {
                         <User size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Full Name"
+                            placeholder={t('fullNamePlaceholder')}
                             value={name}
                             onChangeText={setName}
                         />
@@ -65,7 +67,7 @@ export default function RegisterScreen() {
                         <Mail size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Email Address"
+                            placeholder={t('emailPlaceholder')}
                             value={email}
                             onChangeText={setEmail}
                             keyboardType="email-address"
@@ -77,7 +79,7 @@ export default function RegisterScreen() {
                         <Lock size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Password"
+                            placeholder={t('passwordPlaceholder')}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -88,7 +90,7 @@ export default function RegisterScreen() {
                         <Map size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Farm Size (Acre) - Optional"
+                            placeholder={t('farmSizePlaceholder')}
                             value={farmSize}
                             onChangeText={setFarmSize}
                             keyboardType="numeric"
@@ -103,14 +105,14 @@ export default function RegisterScreen() {
                         {loading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.registerButtonText}>Register</Text>
+                            <Text style={styles.registerButtonText}>{t('registerButton')}</Text>
                         )}
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Already have an account? </Text>
+                        <Text style={styles.footerText}>{t('alreadyAccount')}</Text>
                         <TouchableOpacity onPress={() => router.back()}>
-                            <Text style={styles.footerLink}>Login</Text>
+                            <Text style={styles.footerLink}>{t('loginButton')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

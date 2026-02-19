@@ -170,6 +170,28 @@ export const Translations = {
         guideStep2: "Take a clear photo of the *affected leaf*",
         guideStep3: "Avoid blurry images or bad lighting",
         guideStep4: "Review diagnosis and cost estimates",
+
+        // Login Screen
+        appName: "AI Crop Diagnosis",
+        appSubtitle: "Protect your crops with AI-powered insights",
+        emailPlaceholder: "Email Address",
+        passwordPlaceholder: "Password",
+        loginButton: "Login",
+        continueGuest: "Continue as Guest",
+        noAccount: "Don't have an account? ",
+        loginErrorMissingFields: "Please enter both email and password",
+        loginFailedTitle: "Login Failed",
+        loginFailedDefault: "Login failed. Please check your credentials.",
+
+        // Register Screen
+        registerTitle: "Create Account",
+        registerSubtitle: "Join thousands of farmers protecting their livelihood",
+        fullNamePlaceholder: "Full Name",
+        farmSizePlaceholder: "Farm Size (Acre) - Optional",
+        registerButton: "Register",
+        alreadyAccount: "Already have an account? ",
+        registerErrorMissingFields: "Please fill in all required fields",
+        registerFailedDefault: "Registration failed. Please try again.",
     },
 };
 

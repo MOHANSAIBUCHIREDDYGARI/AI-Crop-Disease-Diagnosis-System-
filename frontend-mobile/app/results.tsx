@@ -97,10 +97,10 @@ export default function ResultsScreen() {
                 <View style={styles.titleRow}>
                     <Text style={styles.cropTitle}>{t(`crop_${prediction.crop.toLowerCase()}` as any)}</Text>
                     <View style={styles.stageBadge}>
-                        <Text style={styles.stageText}>{t(`stage_${prediction.stage.split(' ')[0].toLowerCase()}` as any) || prediction.stage}</Text>
+                        <Text style={styles.stageText}>{prediction.stage}</Text>
                     </View>
                 </View>
-                <Text style={styles.diseaseName}>{prediction.disease_local || prediction.disease.replace(/___/g, ': ').replace(/_/g, ' ')}</Text>
+                <Text style={styles.diseaseName}>{prediction.disease}</Text>
 
                 <ConfidenceBar confidence={prediction.confidence} />
 
