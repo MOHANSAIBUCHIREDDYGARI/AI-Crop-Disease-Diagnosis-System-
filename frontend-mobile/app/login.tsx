@@ -11,6 +11,8 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [emailFocused, setEmailFocused] = useState(false);
+    const [passwordFocused, setPasswordFocused] = useState(false);
     const { signIn, continueAsGuest } = useAuth();
     const router = useRouter();
     const { t } = useLanguage();
@@ -23,13 +25,8 @@ export default function LoginScreen() {
 
         setLoading(true);
         try {
-            // Ask the server to check the credentials
             const response = await api.post('/user/login', { email, password });
-
-            // If correct, save the user info and token (the VIP pass)
             await signIn(response.data.token, response.data.user);
-
-            // Go to the main dashboard
             router.replace('/(tabs)');
         } catch (error: any) {
             const message = error.response?.data?.error || t('loginErrorInvalid');
@@ -47,34 +44,51 @@ export default function LoginScreen() {
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.header}>
                     <View style={styles.logoContainer}>
-                        <Leaf color="#4caf50" size={48} />
+                        <Image
+                            source={require('../assets/images/logo.jpeg')}
+                            style={styles.logoImage}
+                            resizeMode="contain"
+                        />
                     </View>
                     <T style={styles.title}>appTitle</T>
                     <T style={styles.subtitle}>appSubtitle</T>
                 </View>
 
                 <View style={styles.form}>
-                    <View style={styles.inputContainer}>
-                        <Mail size={20} color="#666" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder={t('emailPlaceholder')}
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
+                    {/* Email Field */}
+                    <View style={styles.fieldWrapper}>
+                        <T style={[styles.fieldLabel, emailFocused && styles.fieldLabelFocused]}>emailPlaceholder</T>
+                        <View style={[styles.inputContainer, emailFocused && styles.inputContainerFocused]}>
+                            <Mail size={20} color={emailFocused ? '#4caf50' : '#aaa'} style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder={t('emailPlaceholder')}
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                autoComplete="email"
+                                onFocus={() => setEmailFocused(true)}
+                                onBlur={() => setEmailFocused(false)}
+                            />
+                        </View>
                     </View>
 
-                    <View style={styles.inputContainer}>
-                        <Lock size={20} color="#666" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder={t('passwordPlaceholder')}
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                        />
+                    {/* Password Field */}
+                    <View style={styles.fieldWrapper}>
+                        <T style={[styles.fieldLabel, passwordFocused && styles.fieldLabelFocused]}>passwordPlaceholder</T>
+                        <View style={[styles.inputContainer, passwordFocused && styles.inputContainerFocused]}>
+                            <Lock size={20} color={passwordFocused ? '#4caf50' : '#aaa'} style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder=""
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry
+                                onFocus={() => setPasswordFocused(true)}
+                                onBlur={() => setPasswordFocused(false)}
+                            />
+                        </View>
                     </View>
 
                     <TouchableOpacity
@@ -89,7 +103,7 @@ export default function LoginScreen() {
                         )}
                     </TouchableOpacity>
 
-                    {/* Guest Access Button: For users who just want to try it out first */}
+                    {/* Guest Access Button */}
                     <TouchableOpacity
                         style={styles.guestButton}
                         onPress={() => {
@@ -115,50 +129,82 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fdf8',
+        backgroundColor: '#fff',
     },
     scrollContainer: {
         flexGrow: 1,
-        justifyContent: 'center',
         padding: 24,
+        justifyContent: 'center',
     },
     header: {
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 48,
     },
     logoContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         backgroundColor: '#e8f5e9',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 24,
+        shadowColor: '#4caf50',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
+        elevation: 10,
+        overflow: 'hidden',
+    },
+    logoImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
     },
     title: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: 'bold',
-        color: '#2e7d32',
+        color: '#1b5e20',
         marginBottom: 8,
+        letterSpacing: 0.5,
     },
     subtitle: {
         fontSize: 16,
         color: '#666',
         textAlign: 'center',
+        maxWidth: '80%',
+        lineHeight: 24,
     },
     form: {
         width: '100%',
     },
+    fieldWrapper: {
+        marginBottom: 20,
+    },
+    fieldLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#999',
+        marginBottom: 8,
+        marginLeft: 4,
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
+    fieldLabelFocused: {
+        color: '#4caf50',
+    },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-        marginBottom: 16,
-        paddingHorizontal: 12,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 14,
+        paddingHorizontal: 16,
         height: 56,
+        borderWidth: 2,
+        borderColor: '#e9ecef',
+    },
+    inputContainerFocused: {
+        borderColor: '#4caf50',
+        backgroundColor: '#f0faf0',
     },
     inputIcon: {
         marginRight: 12,
@@ -167,51 +213,57 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 16,
         color: '#333',
+        fontWeight: '500',
+        outlineWidth: 0,
+        outlineStyle: 'none' as any,
+        borderWidth: 0,
+        backgroundColor: 'transparent',
     },
     loginButton: {
         backgroundColor: '#4caf50',
-        borderRadius: 12,
-        height: 56,
+        borderRadius: 16,
+        height: 60,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 8,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        marginTop: 16,
+        shadowColor: '#4caf50',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 8,
     },
     loginButtonText: {
         color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
+        letterSpacing: 1,
     },
     guestButton: {
-        backgroundColor: 'transparent',
-        borderRadius: 12,
-        height: 56,
+        backgroundColor: '#e8f5e9',
+        borderRadius: 16,
+        height: 60,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 12,
-        borderWidth: 1,
-        borderColor: '#4caf50',
+        marginTop: 16,
     },
     guestButtonText: {
-        color: '#4caf50',
+        color: '#2e7d32',
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: 'bold',
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 24,
+        marginTop: 32,
+        alignItems: 'center',
     },
     footerText: {
-        fontSize: 14,
-        color: '#666',
+        fontSize: 15,
+        color: '#888',
+        marginRight: 8,
     },
     footerLink: {
-        fontSize: 14,
+        fontSize: 15,
         color: '#2e7d32',
         fontWeight: 'bold',
     },

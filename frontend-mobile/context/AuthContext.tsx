@@ -75,12 +75,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
      * Log Out: Forget everything about the user session.
      */
     const signOut = async () => {
-        await deleteItem('userToken');
-        await deleteItem('userData');
-        await deleteItem('isGuest');
+        console.log('AuthContext: signOut called');
+        try {
+            console.log('AuthContext: Deleting stored items...');
+            await deleteItem('userToken');
+            await deleteItem('userData');
+            await deleteItem('isGuest');
+            console.log('AuthContext: Stored items deleted.');
+        } catch (e) {
+            console.error('AuthContext: Error removing auth data:', e);
+        }
+        console.log('AuthContext: Clearing state variables...');
         setToken(null);
         setUser(null);
         setIsGuest(false);
+        console.log('AuthContext: State cleared.');
     };
 
     /**

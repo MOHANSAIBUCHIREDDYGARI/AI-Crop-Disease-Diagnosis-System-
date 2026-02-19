@@ -192,14 +192,14 @@ export default function ResultsScreen() {
                 </Text>
             </View>
 
-            {prediction.disease !== 'Healthy' && (
+            {prediction.disease !== 'Healthy' && pesticide_recommendations && (
                 <>
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>{labels.treatment_plan || t('treatmentPlan')}</Text>
-                            <View style={[styles.urgencyBadge, { backgroundColor: pesticide_recommendations.urgency === 'high' ? '#ffebee' : '#e8f5e9' }]}>
-                                <Text style={[styles.urgencyText, { color: pesticide_recommendations.urgency === 'high' ? '#d32f2f' : '#2e7d32' }]}>
-                                    {pesticide_recommendations.urgency.toUpperCase()} {labels.urgency || t('urgency')}
+                            <View style={[styles.urgencyBadge, { backgroundColor: (pesticide_recommendations?.urgency || 'medium') === 'high' ? '#ffebee' : '#e8f5e9' }]}>
+                                <Text style={[styles.urgencyText, { color: (pesticide_recommendations?.urgency || 'medium') === 'high' ? '#d32f2f' : '#2e7d32' }]}>
+                                    {(pesticide_recommendations?.urgency || 'medium').toUpperCase()} {labels.urgency || t('urgency')}
                                 </Text>
                             </View>
                         </View>

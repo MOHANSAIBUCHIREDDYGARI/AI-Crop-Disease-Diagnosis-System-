@@ -45,7 +45,7 @@ export default function HistoryScreen() {
             } else if (user) {
                 // Logged-in users pull from the server
                 const response = await api.get('/diagnosis/history');
-                setHistory(response.data);
+                setHistory(response.data.history || []);
             }
         } catch (error) {
             console.error('Failed to fetch history', error);

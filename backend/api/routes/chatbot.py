@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 import sys
 import os
+import datetime
+from bson.objectid import ObjectId
 
 # Add the project directory to the python path so we can import our modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -50,17 +52,17 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '') 
     # Tell the AI exactly how to behave - like a friendly expert farmer!
     system_prompt = f"""You are an expert agricultural assistant specializing in crop disease management for Indian farmers.
 
-**Your Expertise:** Crop Diseases (Tomato, Rice, Wheat, Cotton), Treatment Methods, Prevention Strategies, Cost-Effective Solutions, Weather-Based Advice, Organic Farming.
+**Your Expertise:** Crop Diseases (Tomato, Rice, Wheat, Cotton, Grape, Maize, Potato), Treatment Methods, Prevention Strategies, Cost-Effective Solutions, Weather-Based Advice, Organic Farming.
 
 **Supported Crops & Common Diseases:**
 
-**Tomato:** Early Blight (Mancozeb 2g/L), Late Blight (Metalaxyl+Mancozeb 2.5g/L), Septoria Leaf Spot (Chlorothalonil 2ml/L), Bacterial Spot (Copper fungicides), Leaf Mold, Spider Mites (Neem oil), Yellow Leaf Curl Virus, Mosaic Virus.
-
-**Rice:** Brown Spot (Mancozeb/Propiconazole), Hispa (Chlorpyrifos/Fipronil), Leaf Blast (Tricyclazole 0.6g/L), Bacterial Blight (Copper oxychloride).
-
-**Wheat:** Brown Rust (Propiconazole), Yellow Rust (Tebuconazole), Loose Smut (Carboxin seed treatment).
-
-**Cotton:** Bacterial Blight (Streptocycline), Leaf Curl Virus, Leaf Hopper/Jassids (Imidacloprid).
+**Cotton:** Bacterial Blight (Streptocycline), Leaf Curl Virus (Whitefly control), Leaf Hopper (Imidacloprid).
+**Grape:** Black Rot (Mancozeb), Esca (Pruning), Leaf Blight (Copper Oxychloride).
+**Maize:** Common Rust (Mancozeb), Gray Leaf Spot (Propiconazole), Northern Leaf Blight (Azoxystrobin).
+**Potato:** Early Blight (Mancozeb 2g/L), Late Blight (Metalaxyl).
+**Rice:** Brown Spot, Hispa, Leaf Blast, Bacterial Blight.
+**Tomato:** Early Blight, Late Blight, Septoria, Bacterial Spot, Leaf Mold, Spider Mites, Viruses.
+**Wheat:** Brown Rust, Yellow Rust, Loose Smut.
 
 **Treatment Guidelines:** Early Stage (0-30%): Organic treatments. Medium (30-60%): Organic+Chemical. Severe (60%+): Immediate chemical intervention.
 
@@ -119,12 +121,18 @@ def get_fallback_response(message: str, language: str = 'en') -> str:
             'tomato_late_blight': "Late Blight is serious! Water-soaked lesions on leaves. Immediate treatment: Metalaxyl + Mancozeb (2.5g/L) every 5-7 days. Remove severely infected plants. Avoid evening watering. Cost: ₹300-500 per acre per spray.",
             'tomato_septoria': "Septoria Leaf Spot shows small circular spots. Treatment: Chlorothalonil (2ml/L) or Copper fungicide (3g/L) weekly. Organic: Bordeaux mixture (1%). Remove lower infected leaves.",
             'rice_blast': "Rice Blast causes diamond-shaped lesions. Treatment: Tricyclazole (0.6g/L) at tillering and booting stages. Or Carbendazim (1g/L). Prevention: Avoid excessive nitrogen. Cost: ₹400-600/acre.",
+            'potato_early_blight': "Early Blight in Potato: Concentric rings on lower leaves. Treatment: Mancozeb (2g/L) or Chlorothalonil. Organic: Copper-based sprays. Harvest when vines are completely dead.",
+            'potato_late_blight': "Late Blight in Potato: Dark, water-soaked spots. Rapid spread! Treatment: Metalaxyl or Cymoxanil immediately. Destroy infected tubers. Avoid wet leaves.",
+            'wheat_rust': "Rust in Wheat: Yellow or brown pustules. Treatment: Propiconazole (1ml/L) or Tebuconazole. Resistant varieties are the best prevention.",
+            'maize_rust': "Common Rust in Maize: Cinnamon-brown pustules. Treatment: Mancozeb (2.5g/L) if severe. Usually, hybrids have resistance. Early planting helps.",
+            'cotton_blight': "Bacterial Blight in Cotton: Angular water-soaked spots. Treatment: Streptocycline (0.1g) + Copper Oxychloride (3g) per liter. Remove crop debris.",
+            'grape_rot': "Black Rot in Grape: Brown circular lesions. Treatment: Mancozeb or Myclobutanil. Remove mummified berries. Prune for better air circulation.",
             'pesticide_general': "For specific pesticide recommendations, I need: 1) Which crop? 2) What symptoms? 3) Disease stage? Upload a crop image for accurate diagnosis and tailored pesticide suggestions with dosages.",
             'cost': "Treatment costs vary: Early stage (₹200-400/acre), Medium (₹500-800/acre), Severe (₹1000-1500/acre). Includes pesticides and labor. Use cost calculator after diagnosis for detailed breakdown.",
             'prevention': "Key prevention: 1) Crop rotation (3-4 years), 2) Disease-free seeds, 3) Proper spacing, 4) Drip irrigation, 5) Regular monitoring, 6) Remove infected plants, 7) Balanced fertilization.",
             'organic': "Organic treatments: Neem oil (5ml/L) for pests, Trichoderma for soil diseases, Bacillus thuringiensis for caterpillars, Bordeaux mixture (1%) for fungal diseases, Garlic-chili spray for aphids. Apply weekly.",
             'weather': "Weather impacts: High humidity + moderate temp (20-25°C) favors fungal diseases. Monsoon needs preventive sprays. Hot dry weather reduces fungal diseases but increases pests. Adjust based on forecasts.",
-            'default': "I'm your agricultural assistant! Ask about: 🌱 Crop diseases (tomato, rice, wheat, cotton), 💊 Pesticides, 💰 Costs, 🌿 Organic solutions, 🛡️ Prevention, 🌦️ Weather advice. Upload crop image for diagnosis!"
+            'default': "I'm your agricultural assistant! Ask about: 🌱 Crop diseases (Tomato, Rice, Wheat, Cotton, Grape, Maize, Potato), 💊 Pesticides, 💰 Costs, 🌿 Organic solutions, 🛡️ Prevention, 🌦️ Weather advice. Upload crop image for diagnosis!"
         }
     }
     
@@ -141,6 +149,21 @@ def get_fallback_response(message: str, language: str = 'en') -> str:
             response = responses['en']['pesticide_general']
     elif 'rice' in message_lower and 'blast' in message_lower:
         response = responses['en']['rice_blast']
+    elif 'potato' in message_lower:
+        if any(word in message_lower for word in ['early', 'ring', 'concentric']):
+            response = responses['en']['potato_early_blight']
+        elif any(word in message_lower for word in ['late', 'water soaked', 'dark spot']):
+            response = responses['en']['potato_late_blight']
+        else:
+            response = responses['en']['pesticide_general']
+    elif 'wheat' in message_lower and 'rust' in message_lower:
+        response = responses['en']['wheat_rust']
+    elif 'maize' in message_lower and 'rust' in message_lower:
+        response = responses['en']['maize_rust']
+    elif 'cotton' in message_lower and 'blight' in message_lower:
+        response = responses['en']['cotton_blight']
+    elif 'grape' in message_lower and 'rot' in message_lower:
+        response = responses['en']['grape_rot']
     elif any(word in message_lower for word in ['pesticide', 'spray', 'chemical', 'fungicide']):
         response = responses['en']['pesticide_general']
     elif any(word in message_lower for word in ['cost', 'price', 'money', 'expensive', 'rupee']):
@@ -179,9 +202,10 @@ def send_message():
                 user_id = token_data['user_id']
                 
                 # If logged in, use their preferred language
-                user = db.execute_query('SELECT preferred_language FROM users WHERE id = ?', (user_id,))
+                users_collection = db.get_collection('users')
+                user = users_collection.find_one({'_id': ObjectId(user_id)})
                 if user:
-                    language = user[0]['preferred_language']
+                    language = user.get('preferred_language', 'en')
         
         data = request.get_json()
         message = data.get('message', '').strip()
@@ -210,14 +234,14 @@ def send_message():
         elif user_id:
             
             # Or fetch their latest diagnosis from history
-            recent_diagnosis = db.execute_query(
-                '''SELECT crop, disease, severity_percent FROM diagnosis_history 
-                   WHERE user_id = ? ORDER BY created_at DESC LIMIT 1''',
-                (user_id,)
-            )
+            diagnosis_collection = db.get_collection('diagnosis_history')
+            recent_diagnosis = diagnosis_collection.find({'user_id': user_id})\
+                .sort('created_at', -1)\
+                .limit(1)
             
-            if recent_diagnosis:
-                d = recent_diagnosis[0]
+            recent_list = list(recent_diagnosis)
+            if recent_list:
+                d = recent_list[0]
                 context = f"User's recent diagnosis: {d['crop']} with {d['disease']} at {d['severity_percent']}% severity."
         
         
@@ -227,11 +251,13 @@ def send_message():
         
         # Save the conversation if the user is logged in
         if user_id:
-            db.execute_insert(
-                '''INSERT INTO chatbot_conversations (user_id, message, response, language)
-                   VALUES (?, ?, ?, ?)''',
-                (user_id, message, response_text, language)
-            )
+            db.get_collection('chatbot_conversations').insert_one({
+                'user_id': user_id,
+                'message': message,
+                'response': response_text,
+                'language': language,
+                'created_at': datetime.datetime.utcnow()
+            })
         
         return jsonify({
             'message': message,
@@ -264,14 +290,10 @@ def get_chat_history():
         
         
         # Fetch conversations from database, newest first
-        history = db.execute_query(
-            '''SELECT message, response, language, created_at 
-               FROM chatbot_conversations 
-               WHERE user_id = ? 
-               ORDER BY created_at DESC 
-               LIMIT ?''',
-            (user_id, limit)
-        )
+        chat_collection = db.get_collection('chatbot_conversations')
+        history = chat_collection.find({'user_id': user_id})\
+            .sort('created_at', -1)\
+            .limit(limit)
         
         chat_list = []
         for chat in history:

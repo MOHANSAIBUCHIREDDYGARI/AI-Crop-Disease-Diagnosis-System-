@@ -6,7 +6,8 @@ import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
 type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
-type IconSymbolName = keyof typeof MAPPING;
+
+export type IconSymbolName = keyof typeof MAPPING;
 
 
 const MAPPING = {
@@ -14,6 +15,14 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'leaf.fill': 'eco',
+  'exclamationmark.triangle.fill': 'warning',
+  'lightbulb.fill': 'lightbulb',
+  'book.fill': 'menu-book',
+  'circle.circle.fill': 'lens',
+  'drop.triangle.fill': 'opacity',
+  'humidity.fill': 'water-drop',
+  'allergens': 'coronavirus',
 } as IconMapping;
 
 

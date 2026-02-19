@@ -21,8 +21,12 @@ const api = axios.create({
 api.interceptors.request.use(
     async (config) => {
         const token = await getItem('userToken');
+        console.log(`[API] Request to ${config.url} | Token exists: ${!!token}`);
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+            console.log('[API] Attached Authorization header');
+        } else {
+            console.log('[API] No token attached');
         }
         return config;
     },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { User, LogOut, Globe, Bell, Shield, Info, HelpCircle, ChevronRight, Languages } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
@@ -25,21 +25,35 @@ export default function ProfileScreen() {
     const [showLanguagePicker, setShowLanguagePicker] = useState(false);
 
     const handleSignOut = async () => {
-        Alert.alert(
-            t('signOutTitle'),
-            t('signOutMessage'),
-            [
-                { text: t('cancel'), style: 'cancel' },
-                {
-                    text: t('logOut'),
-                    style: 'destructive',
-                    onPress: async () => {
-                        await signOut();
-                        router.replace('/login');
-                    }
-                }
-            ]
-        );
+        const doLogout = async () => {
+            try {
+                await signOut();
+            } catch (e) {
+                console.error('SignOut error:', e);
+            }
+            if (Platform.OS === 'web') {
+                (window as any).location.href = '/login';
+            } else {
+                router.replace('/login');
+            }
+        };
+
+        if (Platform.OS === 'web') {
+            // Alert.alert callbacks are unreliable on React Native Web — use native browser confirm
+            const confirmed = (window as any).confirm('Are you sure you want to log out?');
+            if (confirmed) {
+                await doLogout();
+            }
+        } else {
+            Alert.alert(
+                t('signOutTitle'),
+                t('signOutMessage'),
+                [
+                    { text: t('cancel'), style: 'cancel' },
+                    { text: t('logOut'), style: 'destructive', onPress: doLogout }
+                ]
+            );
+        }
     };
 
     /**

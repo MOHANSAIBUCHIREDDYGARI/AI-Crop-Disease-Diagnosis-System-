@@ -15,10 +15,23 @@ function RootLayoutContent() {
   const segments = useSegments();
   const router = useRouter();
 
-  // Wait for the app to load before deciding where to send the user
+  // Handle authentication routing
   useEffect(() => {
     if (isLoading) return;
-  }, [isLoading]);
+
+    const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
+
+    if (!token && !isGuest) {
+      // No session at all → send to login
+      if (!inAuthGroup) {
+        router.replace('/login');
+      }
+    } else if (token && inAuthGroup) {
+      // Has a real token but is on login/register → already logged in, go to dashboard
+      // NOTE: Guests are allowed to navigate to login/register (to create an account)
+      router.replace('/(tabs)');
+    }
+  }, [isLoading, token, isGuest, segments]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

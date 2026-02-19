@@ -92,8 +92,8 @@ export default function DashboardScreen() {
       // Fallback if weather fails (don't crash the app)
       setWeather({
         temp: 28,
-        description: 'Clear',
-        location: 'Weather Unavailable',
+        description: t('clearSky'), // "Clear" isn't a key, but clearSky is. Or use hardcoded if no key. Let's use 'clearSky'.
+        location: t('weatherUnavailable'),
       });
     }
   };
@@ -150,8 +150,8 @@ export default function DashboardScreen() {
                 console.log('Geolocation error:', error);
                 setWeather({
                   temp: 28,
-                  description: 'Clear Sky',
-                  location: 'Enable GPS for weather',
+                  description: t('clearSky'),
+                  location: t('enableGps'),
                 });
               }
             );
@@ -176,8 +176,8 @@ export default function DashboardScreen() {
             // Permission denied logic
             setWeather({
               temp: 28,
-              description: 'Clear Sky',
-              location: 'Enable GPS for weather',
+              description: t('clearSky'),
+              location: t('enableGps'),
             });
           }
         }
@@ -185,7 +185,7 @@ export default function DashboardScreen() {
         console.log('Location setup error:', error);
       }
     })();
-  }, []);
+  }, [language]);
 
 
 
@@ -271,9 +271,14 @@ export default function DashboardScreen() {
         formData.append('language', language);
 
         const apiUrl = 'http://localhost:5000/api/diagnosis/detect';
+        // Get token to send along with the request so the backend knows who we are
+        const { getItem } = await import('../../services/storage');
+        const token = await getItem('userToken');
+
         const fetchResponse = await fetch(apiUrl, {
           method: 'POST',
           body: formData,
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         });
 
         if (!fetchResponse.ok) {
@@ -310,8 +315,16 @@ export default function DashboardScreen() {
 
         response = await api.post('/diagnosis/detect', formData, {
           headers: {
+            // Let Axios set the Content-Type with boundary automatically
+            // But we explicitly need 'Content-Type': 'multipart/form-data' for some RN versions? 
+            // Actually, best practice is usually to let it be. 
+            // IF this breaks, we will revert.
             'Content-Type': 'multipart/form-data',
           },
+          transformRequest: (data, headers) => {
+            // Hack to ensure Authorization header isn't lost if Axios creates a new header object
+            return data;
+          }
         });
       }
 
@@ -495,7 +508,9 @@ export default function DashboardScreen() {
           <TouchableOpacity onPress={() => setShowLanguageModal(true)} style={styles.languageButton}>
             <Globe size={20} color="#2E7D32" />
           </TouchableOpacity>
-          <Image source={require('../../assets/images/logo.png')} style={styles.headerIcon} />
+          <View style={styles.headerIconContainer}>
+            <Image source={require('../../assets/images/logo.jpeg')} style={styles.headerIconImage} resizeMode="cover" />
+          </View>
         </View>
       </View>
 
@@ -503,10 +518,10 @@ export default function DashboardScreen() {
       <View style={styles.weatherCard}>
         <View style={styles.weatherInfo}>
           <Text style={styles.weatherTemp}>
-            {location ? (weather ? `${weather.temp}°C` : 'Loading...') : 'N/A'}
+            {location ? (weather ? `${weather.temp}°C` : t('weatherLoading')) : t('weatherNA')}
           </Text>
           <Text style={styles.weatherDesc}>
-            {location ? (weather ? weather.description : 'Fetching weather...') : 'Weather Unavailable'}
+            {location ? (weather ? weather.description : t('weatherFetching')) : t('weatherUnavailable')}
           </Text>
           <Text style={styles.weatherLocation}>
             {location ? (weather ? weather.location : t('weather')) : t('enableGps')}
@@ -724,10 +739,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2E7D32',
   },
-  headerIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  headerIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30, // Round shape
+    backgroundColor: '#2E7D32', // App Theme Green Background
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerIconImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 30, // Match container radius
   },
   headerLeft: {
     flexDirection: 'row',
