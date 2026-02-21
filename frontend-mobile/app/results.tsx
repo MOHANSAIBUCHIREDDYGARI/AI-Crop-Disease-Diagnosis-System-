@@ -7,7 +7,7 @@ import ConfidenceBar from '../components/ConfidenceBar';
 import PesticideCard from '../components/PesticideCard';
 import CostCalculator from '../components/CostCalculator';
 import ProgressionIndicator from '../components/ProgressionIndicator';
-import api from '../services/api';
+import api, { API_URL } from '../services/api';
 
 import { useLanguage } from '../context/LanguageContext';
 
@@ -50,8 +50,19 @@ export default function ResultsScreen() {
 
 
             setIsPlaying(true);
+            // The voice file path from backend is like "/api/diagnosis/voice/filename.mp3"
+            // We need to construct the full URL. 
+            // NOTE: API_URL includes '/api', so we need to be careful not to double it if the backend result includes it.
+            // Backend returns: /api/diagnosis/voice/filename
+            // API_URL is: .../api
+            // So we can remove '/api' from API_URL or just use the base origin.
+
+            const baseUrl = API_URL.replace('/api', '');
+            const audioUrl = `${baseUrl}${result.voice_file}`;
+            console.log('Playing audio from:', audioUrl);
+
             const { sound: newSound } = await Audio.Sound.createAsync(
-                { uri: `http://localhost:5000${result.voice_file}` },
+                { uri: audioUrl },
                 { shouldPlay: true }
             );
             setSound(newSound);

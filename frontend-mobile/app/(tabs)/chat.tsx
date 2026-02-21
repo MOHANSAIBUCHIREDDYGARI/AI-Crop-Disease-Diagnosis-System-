@@ -140,8 +140,8 @@ export default function ChatScreen() {
     return (
         <KeyboardAvoidingView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            behavior="padding"
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
         >
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>{t('chatbotTitle')}</Text>
@@ -161,12 +161,7 @@ export default function ChatScreen() {
                 onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
             />
 
-            {isGuest && (
-                <View style={styles.guestReminder}>
-                    <HelpCircle size={14} color="#666" />
-                    <Text style={styles.guestReminderText}>{t('chatbotGuestReminder')}</Text>
-                </View>
-            )}
+
 
             <View style={styles.inputArea}>
                 <TextInput

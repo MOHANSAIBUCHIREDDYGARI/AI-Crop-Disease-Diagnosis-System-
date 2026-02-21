@@ -36,12 +36,14 @@ const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionC
 
         pesticides.forEach(pesticide => {
             // Extract numbers from strings like "2.5-3.0 liters/acre"
-            const dosageMatch = pesticide.dosage_per_acre.match(/(\d+\.?\d*)-?(\d+\.?\d*)?/);
+            const dosageStr = String((pesticide as any).dosage_per_acre || (pesticide as any).dosage || '0');
+            const dosageMatch = dosageStr.match(/(\d+\.?\d*)-?(\d+\.?\d*)?/);
             if (dosageMatch) {
                 const min = parseFloat(dosageMatch[1]);
                 const max = dosageMatch[2] ? parseFloat(dosageMatch[2]) : min;
                 const avgDosage = (min + max) / 2;
-                totalTreatmentCost += avgDosage * areaInAcres * pesticide.cost_per_liter;
+                const cost = (pesticide as any).cost_per_liter || (pesticide as any).cost_per_unit || 0;
+                totalTreatmentCost += avgDosage * areaInAcres * cost;
             }
         });
 

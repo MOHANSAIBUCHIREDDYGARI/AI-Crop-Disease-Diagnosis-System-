@@ -467,8 +467,35 @@ def get_diagnosis_details(diagnosis_id):
                 })
         
         
-        # Fetch cost calculations (Assuming separate collection for now, OR embedded)
-        # Keeping it separate to match previous schema logic, but ideally should be embedded
+        # Fetch the disease info
+        diseases_collection = db.get_collection('diseases')
+        disease_data = {}
+        try:
+            disease_info = diseases_collection.find_one({'crop': diagnosis['crop'], 'disease_name': diagnosis['disease']})
+            if not disease_info:
+                disease_with_prefix = f"{diagnosis['crop'].capitalize()}___{diagnosis['disease'].replace(' ', '_')}"
+                disease_info = diseases_collection.find_one({'crop': diagnosis['crop'], 'disease_name': disease_with_prefix})
+            if not disease_info:
+                disease_info = diseases_collection.find_one({'crop': diagnosis['crop'], 'disease_name': diagnosis['disease'].replace(' ', '_')})
+            if disease_info:
+                disease_data = {
+                    'description': disease_info.get('description', ''),
+                    'symptoms': disease_info.get('symptoms', ''),
+                    'prevention_steps': disease_info.get('prevention_steps', ''),
+                    'organic_alternatives': disease_info.get('organic_alternatives', '')
+                }
+                
+                # Fetch user language preference and translate
+                users_collection = db.get_collection('users')
+                user = users_collection.find_one({'_id': ObjectId(user_id)})
+                language = user.get('preferred_language', 'en') if user else 'en'
+                disease_data = translate_disease_info(disease_data, language)
+            else:
+                language = 'en'
+        except Exception as e:
+            print(f"Error fetching disease info in history: {e}")
+            language = 'en'
+
         cost_collection = db.get_collection('cost_calculations')
         cost_data = cost_collection.find_one({'diagnosis_id': str(diagnosis['_id'])})
         
@@ -480,19 +507,23 @@ def get_diagnosis_details(diagnosis_id):
                 'prevention_cost': cost_data.get('prevention_cost'),
                 'total_cost': cost_data.get('total_cost')
             }
-        
+
         response = {
-            'diagnosis': {
-                'id': str(diagnosis['_id']),
+            'diagnosis_id': str(diagnosis['_id']),
+            'prediction': {
                 'crop': diagnosis['crop'],
                 'disease': diagnosis['disease'],
                 'confidence': diagnosis['confidence'],
-                'severity_percent': diagnosis['severity_percent'],
-                'stage': diagnosis['stage'],
-                'created_at': diagnosis['created_at']
+                'severity_percent': diagnosis.get('severity_percent', 0),
+                'stage': diagnosis.get('stage', '')
             },
-            'pesticides': pesticide_list,
-            'cost': cost_info
+            'disease_info': disease_data,
+            'pesticide_recommendations': {
+                'recommended_pesticides': pesticide_list
+            },
+            'weather_advice': None,  # Not stored in history currently
+            'cost': cost_info,
+            'language': language
         }
         
         return jsonify(response), 200

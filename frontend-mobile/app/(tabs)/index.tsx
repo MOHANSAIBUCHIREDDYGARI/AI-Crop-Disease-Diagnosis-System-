@@ -130,6 +130,7 @@ export default function DashboardScreen() {
 
   // --- Helper: Initial Setup ---
   // When the app starts, we try to get the user's location automatically
+
   useEffect(() => {
     (async () => {
       try {
@@ -185,7 +186,15 @@ export default function DashboardScreen() {
         console.log('Location setup error:', error);
       }
     })();
-  }, [language]);
+  }, []);
+
+  // --- Helper: Language Update ---
+  // If the language changes, re-fetch weather to get the translated description
+  useEffect(() => {
+    if (location) {
+      fetchWeather(location.latitude, location.longitude);
+    }
+  }, [language, location]);
 
 
 
@@ -490,9 +499,8 @@ export default function DashboardScreen() {
   }
 
 
-  // 2. Normal Dashboard UI
   return (
-    <ScrollView key={language} style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Header with Name & Language Picker */}
       <View style={styles.dashboardHeader}>
         <View style={styles.headerLeft}>

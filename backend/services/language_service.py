@@ -1,11 +1,7 @@
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from typing import Optional, Dict
 import json
 import os
-
-
-# Initialize the Google Translator (our babel fish!)
-translator = Translator(service_urls=['translate.google.com'])
 
 
 # A simple memory to store words we've already translated so we don't ask Google again
@@ -54,9 +50,8 @@ def translate_text(text: str, target_language: str = 'en', source_language: str 
     
     try:
         
-        # Ask Google to translate it
-        translation = translator.translate(text, src=source_language, dest=target_language)
-        translated_text = translation.text
+        # Ask Google to translate it using deep-translator
+        translated_text = GoogleTranslator(source=source_language, target=target_language).translate(text)
         
         
         # Remember it for next time
