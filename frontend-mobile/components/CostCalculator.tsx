@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Calculator, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
-
+import { T } from './ui/T';
 
 interface Pesticide {
     name: string;
@@ -15,6 +15,10 @@ interface CostCalculatorProps {
     preventionCostPerAcre?: number;
 }
 
+/**
+ * A simple tool to help farmers budget for treatment.
+ * It compares the cost of curing the disease vs. preventing it.
+ */
 const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionCostPerAcre = 500 }) => {
     const { t } = useLanguage();
     const [landArea, setLandArea] = useState('1');
@@ -22,7 +26,8 @@ const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionC
 
     const parseArea = () => {
         const area = parseFloat(landArea) || 0;
-        return unit === 'hectares' ? area * 2.47105 : area; // Convert hectares to acres
+        // Convert hectares to acres because our math is based on acres
+        return unit === 'hectares' ? area * 2.47105 : area;
     };
 
     const calculateCosts = () => {
@@ -30,13 +35,15 @@ const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionC
         let totalTreatmentCost = 0;
 
         pesticides.forEach(pesticide => {
-            // Parse dosage (e.g., "2-3 L/acre" -> take average 2.5)
-            const dosageMatch = pesticide.dosage_per_acre.match(/(\d+\.?\d*)-?(\d+\.?\d*)?/);
+            // Extract numbers from strings like "2.5-3.0 liters/acre"
+            const dosageStr = String((pesticide as any).dosage_per_acre || (pesticide as any).dosage || '0');
+            const dosageMatch = dosageStr.match(/(\d+\.?\d*)-?(\d+\.?\d*)?/);
             if (dosageMatch) {
                 const min = parseFloat(dosageMatch[1]);
                 const max = dosageMatch[2] ? parseFloat(dosageMatch[2]) : min;
                 const avgDosage = (min + max) / 2;
-                totalTreatmentCost += avgDosage * areaInAcres * pesticide.cost_per_liter;
+                const cost = (pesticide as any).cost_per_liter || (pesticide as any).cost_per_unit || 0;
+                totalTreatmentCost += avgDosage * areaInAcres * cost;
             }
         });
 
@@ -60,33 +67,34 @@ const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionC
             </View>
 
             <View style={styles.inputSection}>
-                <Text style={styles.label}>{t('landArea')}</Text>
+                <Text style={styles.label}>{t('landArea')}:</Text>
                 <View style={styles.inputRow}>
                     <TextInput
                         style={styles.input}
                         value={landArea}
                         onChangeText={setLandArea}
                         keyboardType="decimal-pad"
-                        placeholder="Enter area"
+                        placeholder={t('enterArea')}
                     />
                     <View style={styles.unitSelector}>
                         <TouchableOpacity
                             style={[styles.unitButton, unit === 'acres' && styles.unitButtonActive]}
                             onPress={() => setUnit('acres')}
                         >
-                            <Text style={[styles.unitText, unit === 'acres' && styles.unitTextActive]}>{t('acres')}</Text>
+                            <T style={[styles.unitText, unit === 'acres' && styles.unitTextActive]}>acres</T>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.unitButton, unit === 'hectares' && styles.unitButtonActive]}
                             onPress={() => setUnit('hectares')}
                         >
-                            <Text style={[styles.unitText, unit === 'hectares' && styles.unitTextActive]}>{t('hectares')}</Text>
+                            <T style={[styles.unitText, unit === 'hectares' && styles.unitTextActive]}>hectares</T>
                         </TouchableOpacity>
                     </View>
                 </View>
             </View>
 
             <View style={styles.resultsSection}>
+                {/* Treatment Cost (Expensive!) */}
                 <View style={[styles.costCard, { backgroundColor: '#ffebee' }]}>
                     <TrendingUp size={20} color="#d32f2f" />
                     <View style={styles.costInfo}>
@@ -95,6 +103,7 @@ const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionC
                     </View>
                 </View>
 
+                {/* Prevention Cost (Cheaper!) */}
                 <View style={[styles.costCard, { backgroundColor: '#e8f5e9' }]}>
                     <TrendingDown size={20} color="#2e7d32" />
                     <View style={styles.costInfo}>
@@ -103,18 +112,19 @@ const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionC
                     </View>
                 </View>
 
+                {/* Show how much they save by being proactive */}
                 {costs.savings > 0 && (
                     <View style={styles.savingsCard}>
                         <Text style={styles.savingsText}>
-                            {t('savingsText').replace('{savings}', costs.savings.toFixed(0))}
+                            💰 {t('savingsMessage')} ₹{costs.savings.toFixed(0)}!
                         </Text>
                     </View>
                 )}
             </View>
 
-            <Text style={styles.disclaimer}>
-                {t('costDisclaimer')}
-            </Text>
+            <T style={styles.disclaimer}>
+                costDisclaimer
+            </T>
         </View>
     );
 };

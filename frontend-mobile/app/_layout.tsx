@@ -15,18 +15,37 @@ function RootLayoutContent() {
   const segments = useSegments();
   const router = useRouter();
 
+  // Handle authentication routing
   useEffect(() => {
     if (isLoading) return;
-  }, [isLoading]);
+
+    const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
+
+    if (!token && !isGuest) {
+      // No session at all → send to login
+      if (!inAuthGroup) {
+        router.replace('/login');
+      }
+    } else if (token && inAuthGroup) {
+      // Has a real token but is on login/register → already logged in, go to dashboard
+      // NOTE: Guests are allowed to navigate to login/register (to create an account)
+      router.replace('/(tabs)');
+    }
+  }, [isLoading, token, isGuest, segments]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      {/* The Stack Navigator handles moving between screens (like pages in a book) */}
       <Stack screenOptions={{ headerShown: false }}>
+        {/* The main tabs (Home, Explorer, History, Chat) */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ title: 'Login' }} />
-        <Stack.Screen name="register" options={{ title: 'Register' }} />
-        <Stack.Screen name="results" options={{ title: t('diagnosisResults'), headerShown: true }} />
-        <Stack.Screen name="profile" options={{ title: 'Profile', headerShown: true }} />
+        {/* Authentication Screens */}
+        <Stack.Screen name="login" options={{ title: t('login') || 'Login' }} />
+        <Stack.Screen name="register" options={{ title: t('register') || 'Register' }} />
+
+        {/* Feature Screens */}
+        <Stack.Screen name="results" options={{ title: t('diagnosisResults') || 'Diagnosis Results', headerShown: true }} />
+        <Stack.Screen name="profile" options={{ title: t('profile') || 'Profile', headerShown: true }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
@@ -34,6 +53,7 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
+  // Wrap the entire app with our "Providers" so every screen can access Auth and Language settings
   return (
     <AuthProvider>
       <LanguageProvider>

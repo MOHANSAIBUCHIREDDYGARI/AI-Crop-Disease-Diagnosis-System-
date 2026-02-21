@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 import sys
 import os
+from bson.objectid import ObjectId
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -42,15 +43,17 @@ def calculate_cost():
             return jsonify({'error': 'Invalid land area'}), 400
         
         # Fetch diagnosis details
-        diagnosis = db.execute_query(
-            'SELECT * FROM diagnosis_history WHERE id = ? AND user_id = ?',
-            (diagnosis_id, user_id)
-        )
+        diagnosis_collection = db.get_collection('diagnosis_history')
+        try:
+             oid_diag = ObjectId(diagnosis_id)
+        except:
+             return jsonify({'error': 'Invalid diagnosis ID'}), 400
+
+        diagnosis = diagnosis_collection.find_one({'_id': oid_diag, 'user_id': user_id})
         
         if not diagnosis:
             return jsonify({'error': 'Diagnosis not found'}), 404
         
-        diagnosis = diagnosis[0]
         
         # Calculate costs based on disease and land area
         cost_data = calculate_total_cost(
@@ -61,22 +64,23 @@ def calculate_cost():
         )
         
         # Save calculation to database
-        cost_id = db.execute_insert(
-            '''INSERT INTO cost_calculations 
-               (diagnosis_id, land_area, treatment_cost, prevention_cost, total_cost)
-               VALUES (?, ?, ?, ?, ?)''',
-            (
-                diagnosis_id,
-                land_area,
-                cost_data['comparison']['treatment_cost'],
-                cost_data['comparison']['prevention_cost'],
-                cost_data['comparison']['total_cost']
-            )
-        )
+        cost_collection = db.get_collection('cost_calculations')
+        
+        cost_doc = {
+            'diagnosis_id': str(diagnosis['_id']),
+            'land_area': land_area,
+            'treatment_cost': cost_data['comparison']['treatment_cost'],
+            'prevention_cost': cost_data['comparison']['prevention_cost'],
+            'total_cost': cost_data['comparison']['total_cost']
+        }
+        
+        result = cost_collection.insert_one(cost_doc)
+        cost_id = str(result.inserted_id)
         
         # Get user's preferred language
-        user = db.execute_query('SELECT preferred_language FROM users WHERE id = ?', (user_id,))
-        language = user[0]['preferred_language'] if user else 'en'
+        users_collection = db.get_collection('users')
+        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        language = user.get('preferred_language', 'en') if user else 'en'
         
         # Translate treatment approach if needed
         if language != 'en':
@@ -96,7 +100,7 @@ def calculate_cost():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@cost_bp.route('/report/<int:diagnosis_id>', methods=['GET'])
+@cost_bp.route('/report/<diagnosis_id>', methods=['GET'])
 def get_cost_report(diagnosis_id):
     """Get downloadable cost report"""
     try:
@@ -114,30 +118,39 @@ def get_cost_report(diagnosis_id):
         
         user_id = token_data['user_id']
         
-        # Fetch cost calculation details joint with diagnosis info
-        cost_calc = db.execute_query(
-            '''SELECT cc.*, dh.crop, dh.disease, dh.severity_percent, dh.stage
-               FROM cost_calculations cc
-               JOIN diagnosis_history dh ON cc.diagnosis_id = dh.id
-               WHERE cc.diagnosis_id = ? AND dh.user_id = ?''',
-            (diagnosis_id, user_id)
-        )
+        # In MongoDB, we typically do two queries instead of a JOIN, 
+        # or use $lookup aggregation if needed. Simple parsing is easier here.
+        
+        cost_collection = db.get_collection('cost_calculations')
+        cost_calc = cost_collection.find_one({'diagnosis_id': diagnosis_id})
         
         if not cost_calc:
-            return jsonify({'error': 'Cost report not found'}), 404
+             return jsonify({'error': 'Cost report not found'}), 404
+             
+        # Now get the diagnosis details to verify ownership and get crop info
+        diagnosis_collection = db.get_collection('diagnosis_history')
+        try:
+             oid_diag = ObjectId(diagnosis_id)
+        except:
+             return jsonify({'error': 'Invalid diagnosis ID'}), 400
+             
+        diagnosis = diagnosis_collection.find_one({'_id': oid_diag, 'user_id': user_id})
         
-        cost_calc = cost_calc[0]
+        if not diagnosis:
+            # If we liked the cost but couldn't find the diagnosis for THIS user, it's unauthorized
+            return jsonify({'error': 'Diagnosis not found or unauthorized'}), 404
         
+
         # Structure the data for the report
         cost_data = {
-            'crop': cost_calc['crop'],
-            'disease': cost_calc['disease'],
-            'severity_level': cost_calc['stage'],
+            'crop': diagnosis['crop'],
+            'disease': diagnosis['disease'],
+            'severity_level': diagnosis['stage'],
             'treatment': {
                 'pesticide_cost': cost_calc['treatment_cost'] * 0.7,  # Estimated 70% for pesticides
                 'labor_cost': cost_calc['treatment_cost'] * 0.3,      # Estimated 30% for labor
                 'total_treatment_cost': cost_calc['treatment_cost'],
-                'applications_needed': 2 if cost_calc['severity_percent'] < 25 else 3
+                'applications_needed': 2 if diagnosis['severity_percent'] < 25 else 3
             },
             'prevention': {
                 'total_prevention_cost': cost_calc['prevention_cost']
@@ -146,7 +159,7 @@ def get_cost_report(diagnosis_id):
                 'total_cost': cost_calc['total_cost']
             },
             'land_area': cost_calc['land_area'],
-            'urgency': 'high' if cost_calc['severity_percent'] > 50 else 'medium'
+            'urgency': 'high' if diagnosis['severity_percent'] > 50 else 'medium'
         }
         
         # Generate the formatted report

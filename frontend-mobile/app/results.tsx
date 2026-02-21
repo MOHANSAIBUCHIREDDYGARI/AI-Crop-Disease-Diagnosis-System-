@@ -7,18 +7,16 @@ import ConfidenceBar from '../components/ConfidenceBar';
 import PesticideCard from '../components/PesticideCard';
 import CostCalculator from '../components/CostCalculator';
 import ProgressionIndicator from '../components/ProgressionIndicator';
-import api from '../services/api';
+import api, { API_URL } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
-
-
 
 export default function ResultsScreen() {
     const { data } = useLocalSearchParams();
-    const { t } = useLanguage();
     const [result, setResult] = useState<any>(null);
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const router = useRouter();
+    const { t, language } = useLanguage();
 
     useEffect(() => {
         if (data) {
@@ -32,6 +30,7 @@ export default function ResultsScreen() {
         };
     }, [data]);
 
+    // This function plays the "AI Doctor's" voice explanation
     const playVoice = async () => {
         if (!result?.voice_file) return;
 
@@ -48,8 +47,12 @@ export default function ResultsScreen() {
             }
 
             setIsPlaying(true);
+            const baseUrl = API_URL.replace('/api', '');
+            const audioUrl = `${baseUrl}${result.voice_file}`;
+            console.log('Playing audio from:', audioUrl);
+
             const { sound: newSound } = await Audio.Sound.createAsync(
-                { uri: `http://localhost:5000${result.voice_file}` },
+                { uri: audioUrl },
                 { shouldPlay: true }
             );
             setSound(newSound);
@@ -61,7 +64,7 @@ export default function ResultsScreen() {
             });
         } catch (error) {
             console.error('Error playing sound', error);
-            Alert.alert('Error', 'Failed to play voice explanation');
+            Alert.alert(t('error'), t('failedVoice'));
             setIsPlaying(false);
         }
     };
@@ -79,9 +82,30 @@ export default function ResultsScreen() {
     if (!result) return <View style={styles.container} />;
 
     const { prediction, disease_info, pesticide_recommendations, weather_advice } = result;
+    const scanLanguage = result.language || 'en';
+
+    // We try to show translations from the server if they match the current app language,
+    // otherwise we fall back to our local translations.
+    const labels = (scanLanguage === language) ? (result.ui_translations || {}) : {};
+
+    // Make the disease name look nice (remove underscores)
+    let displayDisease = prediction.disease_local || prediction.disease.replace(/___/g, ': ').replace(/_/g, ' ');
+    if (prediction.disease === 'Healthy' && !prediction.disease_local) {
+        displayDisease = t('healthy');
+    }
+
+    let displayStage = prediction.stage_local || prediction.stage;
+    if (prediction.stage === 'Healthy Stage' && !prediction.stage_local) {
+        displayStage = t('healthyStage');
+    } else if (prediction.stage && !prediction.stage_local) {
+        // Try to translate the stage key (e.g., 'early', 'late')
+        const stageKey = prediction.stage.toLowerCase().replace(' ', '_');
+        displayStage = t(stageKey as any) || prediction.stage;
+    }
 
     return (
         <ScrollView style={styles.container}>
+            {/* Status Banner: Green for Good, Orange for Warning */}
             <View style={[styles.statusBanner, { backgroundColor: prediction.confidence > 80 ? '#e8f5e9' : '#fff3e0' }]}>
                 {prediction.confidence > 80 ? (
                     <ShieldCheck color="#2e7d32" size={24} />
@@ -89,39 +113,46 @@ export default function ResultsScreen() {
                     <AlertTriangle color="#ef6c00" size={24} />
                 )}
                 <Text style={[styles.statusText, { color: prediction.confidence > 80 ? '#2e7d32' : '#ef6c00' }]}>
-                    {prediction.disease === 'Healthy' ? t('healthyCrop') : t('potentialDisease')}
+                    {prediction.disease === 'Healthy'
+                        ? (labels.healthy_crop || t('healthyCrop'))
+                        : (labels.potential_disease || t('potentialDisease'))}
                 </Text>
             </View>
 
+            {/* Core Diagnosis Info */}
             <View style={styles.section}>
                 <View style={styles.titleRow}>
-                    <Text style={styles.cropTitle}>{t(`crop_${prediction.crop.toLowerCase()}` as any)}</Text>
+                    <Text style={styles.cropTitle}>
+                        {labels[`crop_${prediction.crop.toLowerCase()}`] || t(`crop_${prediction.crop.toLowerCase()}` as any)}
+                    </Text>
                     <View style={styles.stageBadge}>
-                        <Text style={styles.stageText}>{t(`stage_${prediction.stage.split(' ')[0].toLowerCase()}` as any) || prediction.stage}</Text>
+                        <Text style={styles.stageText}>{displayStage}</Text>
                     </View>
                 </View>
-                <Text style={styles.diseaseName}>{prediction.disease_local || prediction.disease.replace(/___/g, ': ').replace(/_/g, ' ')}</Text>
+                <Text style={styles.diseaseName}>{displayDisease}</Text>
 
-                <ConfidenceBar confidence={prediction.confidence} />
+                <ConfidenceBar
+                    confidence={prediction.confidence}
+                    label={labels.confidence_score}
+                />
 
                 <View style={styles.statsRow}>
                     <View style={styles.statBox}>
-                        <Text style={styles.statLabel}>{t('severity')}</Text>
+                        <Text style={styles.statLabel}>{labels.severity || t('severity')}</Text>
                         <Text style={styles.statValue}>{prediction.severity_percent.toFixed(1)}%</Text>
                     </View>
                     <View style={styles.statBox}>
-                        <Text style={styles.statLabel}>{t('diagnosisId')}</Text>
+                        <Text style={styles.statLabel}>{labels.diagnosis_id || t('diagnosisId')}</Text>
                         <Text style={styles.statValue}>#{result.diagnosis_id || 'N/A'}</Text>
                     </View>
                 </View>
             </View>
 
-            {/* Disease Progression Indicator */}
             {prediction.disease !== 'Healthy' && (
                 <View style={{ paddingHorizontal: 20 }}>
                     <ProgressionIndicator
                         severity={prediction.severity_percent}
-                        stage={prediction.stage}
+                        stage={displayStage}
                     />
                 </View>
             )}
@@ -129,11 +160,13 @@ export default function ResultsScreen() {
             <View style={styles.actionButtons}>
                 <TouchableOpacity style={styles.actionButton} onPress={playVoice}>
                     {isPlaying ? <Headphones size={20} color="#fff" /> : <Volume2 size={20} color="#fff" />}
-                    <Text style={styles.actionButtonText}>{isPlaying ? t('pauseExplanation') : t('voiceExplanation')}</Text>
+                    <Text style={styles.actionButtonText}>
+                        {isPlaying ? (labels.pause_explanation || t('pauseExplanation')) : (labels.voice_explanation || t('voiceExplanation'))}
+                    </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={handleShare}>
                     <Share2 size={20} color="#4caf50" />
-                    <Text style={[styles.actionButtonText, styles.secondaryButtonText]}>{t('shareReport')}</Text>
+                    <Text style={[styles.actionButtonText, styles.secondaryButtonText]}>{labels.share_report || t('shareReport')}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -141,40 +174,43 @@ export default function ResultsScreen() {
                 <View style={styles.weatherBox}>
                     <Info size={20} color="#1976d2" />
                     <View style={styles.weatherContent}>
-                        <Text style={styles.weatherTitle}>{t('weatherAdvice')}</Text>
+                        <Text style={styles.weatherTitle}>{labels.weather_advice || t('weatherAdvice')}</Text>
                         <Text style={styles.weatherText}>{weather_advice}</Text>
                     </View>
                 </View>
             )}
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('diseaseInfo')}</Text>
-                <Text style={styles.infoText}>{disease_info.description}</Text>
-                <Text style={styles.subSubtitle}>{t('symptoms')}</Text>
-                <Text style={styles.infoText}>{disease_info.symptoms}</Text>
+                <Text style={styles.sectionTitle}>{labels.disease_info || t('diseaseInfo')}</Text>
+                <Text style={styles.infoText}>
+                    {disease_info.description || (prediction.disease === 'Healthy' ? t('diseaseDescription') : '')}
+                </Text>
+                <Text style={styles.subSubtitle}>{labels.symptoms || t('symptoms')}:</Text>
+                <Text style={styles.infoText}>
+                    {disease_info.symptoms || (prediction.disease === 'Healthy' ? t('symptomsHealthy') : '')}
+                </Text>
             </View>
 
-            {prediction.disease !== 'Healthy' && (
+            {prediction.disease !== 'Healthy' && pesticide_recommendations && (
                 <>
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>{t('treatmentPlan')}</Text>
-                            <View style={[styles.urgencyBadge, { backgroundColor: pesticide_recommendations.urgency === 'high' ? '#ffebee' : '#e8f5e9' }]}>
-                                <Text style={[styles.urgencyText, { color: pesticide_recommendations.urgency === 'high' ? '#d32f2f' : '#2e7d32' }]}>
-                                    {pesticide_recommendations.urgency.toUpperCase()} {t('urgency')}
+                            <Text style={styles.sectionTitle}>{labels.treatment_plan || t('treatmentPlan')}</Text>
+                            <View style={[styles.urgencyBadge, { backgroundColor: (pesticide_recommendations?.urgency || 'medium') === 'high' ? '#ffebee' : '#e8f5e9' }]}>
+                                <Text style={[styles.urgencyText, { color: (pesticide_recommendations?.urgency || 'medium') === 'high' ? '#d32f2f' : '#2e7d32' }]}>
+                                    {(pesticide_recommendations?.urgency || 'medium').toUpperCase()} {labels.urgency || t('urgency')}
                                 </Text>
                             </View>
                         </View>
 
                         <Text style={styles.approachText}>{pesticide_recommendations.treatment_approach}</Text>
 
-                        <Text style={styles.subSubtitle}>{t('recommendedPesticides')}</Text>
+                        <Text style={styles.subSubtitle}>{labels.recommended_pesticides || t('recommendedPesticides')}:</Text>
                         {pesticide_recommendations.recommended_pesticides.map((pest: any, index: number) => (
                             <PesticideCard key={index} pesticide={pest} />
                         ))}
                     </View>
 
-                    {/* Cost Calculator */}
                     <View style={{ paddingHorizontal: 20 }}>
                         <CostCalculator
                             pesticides={pesticide_recommendations.recommended_pesticides}
@@ -185,12 +221,14 @@ export default function ResultsScreen() {
             )}
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('preventionBestPractices')}</Text>
-                <Text style={styles.infoText}>{disease_info.prevention_steps}</Text>
+                <Text style={styles.sectionTitle}>{labels.prevention_best_practices || t('preventionBestPractices')}</Text>
+                <Text style={styles.infoText}>
+                    {disease_info.prevention_steps || (prediction.disease === 'Healthy' ? t('preventionHealthy') : '')}
+                </Text>
 
                 {disease_info.organic_alternatives && (
                     <>
-                        <Text style={styles.subSubtitle}>{t('organicAlternatives')}</Text>
+                        <Text style={styles.subSubtitle}>🌿 {labels.organic_alternatives || t('organicAlternatives')}:</Text>
                         <Text style={styles.infoText}>{disease_info.organic_alternatives}</Text>
                     </>
                 )}
@@ -198,9 +236,9 @@ export default function ResultsScreen() {
 
             <TouchableOpacity style={styles.doneButton} onPress={() => router.replace('/(tabs)')}>
                 <Check color="#fff" size={20} style={{ marginRight: 8 }} />
-                <Text style={styles.doneButtonText}>{t('finishDiagnosis')}</Text>
+                <Text style={styles.doneButtonText}>{labels.finish_diagnosis || t('finishDiagnosis')}</Text>
             </TouchableOpacity>
-        </ScrollView>
+        </ScrollView >
     );
 }
 

@@ -9,7 +9,7 @@
   },
   {
     "crop": "tomato",
-    "disease_name": "Tomato___Bacterial_spot",
+    "disease_name": "Bacterial spot",
     "description": "Bacterial spot is caused by Xanthomonas bacteria and affects leaves, stems, and fruit",
     "symptoms": "Small dark brown spots on leaves, yellow halos around spots, fruit lesions, leaf drop",
     "prevention_steps": "Use disease-free seeds, avoid overhead watering, maintain plant spacing, remove infected plants, crop rotation",
@@ -17,15 +17,15 @@
   },
   {
     "crop": "tomato",
-    "disease_name": "Tomato___Early_blight",
+    "disease_name": "Early blight",
     "description": "Early blight is a fungal disease caused by Alternaria solani",
     "symptoms": "Dark brown spots with concentric rings on older leaves, yellowing around spots, leaf drop, stem lesions",
-    "prevention_steps": "Remove lower leaves, mulch around plants, avoid overhead irrigation, ensure good air circulation, crop rotation",
+    "prevention_steps": "Remove lower leaves, mulch around plants, avoid overhead irrigation, ensure good drainage, crop rotation, use fungicides like Mancozeb or Chlorothalonil",
     "is_healthy": false
   },
   {
     "crop": "tomato",
-    "disease_name": "Tomato___Late_blight",
+    "disease_name": "Late blight",
     "description": "Late blight is a devastating disease caused by Phytophthora infestans",
     "symptoms": "Large brown blotches on leaves, white mold on leaf undersides, rapid plant death, fruit rot",
     "prevention_steps": "Plant resistant varieties, avoid overhead watering, ensure good drainage, remove infected plants immediately",
@@ -33,7 +33,7 @@
   },
   {
     "crop": "tomato",
-    "disease_name": "Tomato___Leaf_Mold",
+    "disease_name": "Leaf Mold",
     "description": "Leaf mold is caused by the fungus Passalora fulva and thrives in humid conditions",
     "symptoms": "Yellow spots on upper leaf surface, olive-green to brown mold on undersides, leaf curling",
     "prevention_steps": "Improve air circulation, reduce humidity, avoid overhead watering, remove infected leaves",
@@ -41,7 +41,7 @@
   },
   {
     "crop": "tomato",
-    "disease_name": "Tomato___Septoria_leaf_spot",
+    "disease_name": "Septoria leaf spot",
     "description": "Septoria leaf spot is a fungal disease that affects tomato foliage",
     "symptoms": "Small circular spots with dark borders and gray centers, spots on lower leaves first, progressive defoliation",
     "prevention_steps": "Mulch plants, avoid wetting foliage, remove infected leaves, crop rotation, use fungicides preventively",
@@ -49,7 +49,7 @@
   },
   {
     "crop": "tomato",
-    "disease_name": "Tomato___Spider_mites Two-spotted_spider_mite",
+    "disease_name": "Spider mites Two-spotted spider mite",
     "description": "Spider mites are tiny pests that suck plant juices",
     "symptoms": "Yellow stippling on leaves, fine webbing on plants, leaf bronzing, reduced plant vigor",
     "prevention_steps": "Maintain adequate moisture, spray water on undersides of leaves, introduce predatory mites, avoid over-fertilizing",
@@ -57,7 +57,7 @@
   },
   {
     "crop": "tomato",
-    "disease_name": "Tomato___Target_Spot",
+    "disease_name": "Target Spot",
     "description": "Target spot is a fungal disease caused by Corynespora cassiicola",
     "symptoms": "Brown spots with concentric rings, spots on leaves and fruit, leaf yellowing and drop",
     "prevention_steps": "Improve air circulation, avoid overhead irrigation, remove plant debris, use resistant varieties",
@@ -65,7 +65,7 @@
   },
   {
     "crop": "tomato",
-    "disease_name": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+    "disease_name": "Tomato Yellow Leaf Curl Virus",
     "description": "Viral disease transmitted by whiteflies causing severe yield loss",
     "symptoms": "Upward leaf curling, yellowing of leaf margins, stunted growth, reduced fruit production",
     "prevention_steps": "Control whitefly populations, use virus-resistant varieties, remove infected plants, use reflective mulches",
@@ -73,7 +73,7 @@
   },
   {
     "crop": "tomato",
-    "disease_name": "Tomato___Tomato_mosaic_virus",
+    "disease_name": "Tomato mosaic virus",
     "description": "Viral disease that causes mottled leaves and reduced yield",
     "symptoms": "Mottled light and dark green on leaves, leaf distortion, stunted growth, reduced fruit quality",
     "prevention_steps": "Use virus-free seeds, sanitize tools, control aphids, remove infected plants, avoid tobacco use near plants",
@@ -89,7 +89,7 @@
   },
   {
     "crop": "rice",
-    "disease_name": "BrownSpot",
+    "disease_name": "Brown spot",
     "description": "Brown spot is a fungal disease caused by Bipolaris oryzae",
     "symptoms": "Small circular brown spots on leaves, spots may have yellow halos, seedling blight in severe cases",
     "prevention_steps": "Use healthy seeds, maintain proper fertilization, ensure good drainage, avoid water stress",
@@ -97,18 +97,18 @@
   },
   {
     "crop": "rice",
-    "disease_name": "Hispa",
-    "description": "Rice hispa is a beetle pest that damages rice leaves",
-    "symptoms": "White parallel streaks on leaves, leaf scraping, reduced photosynthesis, stunted growth",
-    "prevention_steps": "Clip leaf tips of seedlings, avoid close planting, use light traps, biological control with parasitoids",
+    "disease_name": "Bacterial leaf blight",
+    "description": "Bacterial leaf blight is caused by Xanthomonas oryzae",
+    "symptoms": "Water-soaked streaks on leaves, yellow to white lesions, wilting of seedlings (Kresek phase)",
+    "prevention_steps": "Use resistant varieties, avoid excessive nitrogen, maintain field sanitation, ensure proper water management",
     "is_healthy": false
   },
   {
     "crop": "rice",
-    "disease_name": "LeafBlast",
-    "description": "Leaf blast is a serious fungal disease caused by Magnaporthe oryzae",
-    "symptoms": "Diamond-shaped lesions with gray centers and brown margins, leaf death, neck rot in severe cases",
-    "prevention_steps": "Use resistant varieties, avoid excessive nitrogen, maintain proper water management, remove infected stubble",
+    "disease_name": "Leaf smut",
+    "description": "Leaf smut is a fungal disease caused by Entyloma oryzae",
+    "symptoms": "Small, slightly raised black spots on leaves, spots may enlarge and rupture",
+    "prevention_steps": "Use certified seeds, balanced fertilization, remove infected plant debris",
     "is_healthy": false
   },
   {
@@ -173,6 +173,94 @@
     "description": "Jassids are sucking pests that damage cotton plants",
     "symptoms": "Leaf reddening and curling, hopper burn on leaf margins, stunted growth, reduced yield",
     "prevention_steps": "Monitor regularly, use yellow sticky traps, apply neem-based pesticides, maintain field hygiene, biological control",
+    "is_healthy": false
+  },
+  {
+    "crop": "grape",
+    "disease_name": "Healthy",
+    "description": "The grape vine is healthy with no signs of disease",
+    "symptoms": "Green leaves, vigorous growth, healthy fruit clusters",
+    "prevention_steps": "Regular pruning, proper canopy management, balanced fertilization",
+    "is_healthy": true
+  },
+  {
+    "crop": "grape",
+    "disease_name": "Black Rot",
+    "description": "Black rot is a fungal disease affecting grape leaves and fruit",
+    "symptoms": "Brown circular spots on leaves with black borders, shriveled black berries (mummies)",
+    "prevention_steps": "Remove mummified fruit, prune for air circulation, apply fungicides early in the season",
+    "is_healthy": false
+  },
+  {
+    "crop": "grape",
+    "disease_name": "ESCA",
+    "description": "ESCA (Black Measles) is a complex fungal trunk disease",
+    "symptoms": "Tiger-stripe pattern on leaves, purple or black spots on fruit, dieback of arms or trunk",
+    "prevention_steps": "Use certified vines, protect pruning wounds, remove infected wood",
+    "is_healthy": false
+  },
+  {
+    "crop": "grape",
+    "disease_name": "Leaf Blight",
+    "description": "Leaf blight (Isariopsis Leaf Spot) affects grape foliage",
+    "symptoms": "Irregular brown spots on leaves, premature defoliation, reduced vigor",
+    "prevention_steps": "Fungicide application, remove fallen leaves, maintain good air circulation",
+    "is_healthy": false
+  },
+  {
+    "crop": "maize",
+    "disease_name": "Healthy",
+    "description": "The maize plant is healthy",
+    "symptoms": "Green leaves, strong stalk, healthy cob development",
+    "prevention_steps": "Appropriate spacing, weed control, nutrient management",
+    "is_healthy": true
+  },
+  {
+    "crop": "maize",
+    "disease_name": "Blight",
+    "description": "Northern Corn Leaf Blight caused by Exserohilum turcicum",
+    "symptoms": "Long, cigar-shaped grey-green lesions on leaves, can lead to significant yield loss",
+    "prevention_steps": "Resistant hybrids, crop rotation, residue management, timely fungicide application",
+    "is_healthy": false
+  },
+  {
+    "crop": "maize",
+    "disease_name": "Common_Rust",
+    "description": "Common rust is a fungal disease favored by cool, moist conditions",
+    "symptoms": "Small, oval, cinnamon-brown pustules on both leaf surfaces",
+    "prevention_steps": "Resistant hybrids, early planting, fungicides if infection is severe",
+    "is_healthy": false
+  },
+  {
+    "crop": "maize",
+    "disease_name": "Gray_Leaf_Spot",
+    "description": "Gray leaf spot is a major fungal disease of maize",
+    "symptoms": "Rectangular, gray to tan lesions bordered by leaf veins",
+    "prevention_steps": "Resistant hybrids, rotation with non-host crops, tillage to reduce residue",
+    "is_healthy": false
+  },
+  {
+    "crop": "potato",
+    "disease_name": "Healthy",
+    "description": "The potato plant is healthy",
+    "symptoms": "Green foliage, no lesions or wilting",
+    "prevention_steps": "Certified seed potatoes, proper hilling, pest monitoring",
+    "is_healthy": true
+  },
+  {
+    "crop": "potato",
+    "disease_name": "Early Blight",
+    "description": "Early blight caused by Alternaria solani",
+    "symptoms": "Dark brown spots with concentric rings (target board effect), lower leaves affected first",
+    "prevention_steps": "Crop rotation, balanced nitrogen, fungicide sprays, remove plant debris",
+    "is_healthy": false
+  },
+  {
+    "crop": "potato",
+    "disease_name": "Late Blight",
+    "description": "Late blight caused by Phytophthora infestans (same as tomato)",
+    "symptoms": "Water-soaked lesions, white mold on undersides, tuber rot",
+    "prevention_steps": "Certified seed, destruction of cull piles, preventative fungicides, kill vines before harvest",
     "is_healthy": false
   }
 ]

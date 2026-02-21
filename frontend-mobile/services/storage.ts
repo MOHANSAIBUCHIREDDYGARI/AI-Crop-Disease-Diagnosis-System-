@@ -3,6 +3,11 @@ import { Platform } from 'react-native';
 
 const isWeb = Platform.OS === 'web';
 
+/**
+ * Save a piece of information safely on the user's phone.
+ * If on the web, we use LocalStorage.
+ * If on a phone, we use SecureStore (like a digital safe).
+ */
 export const saveItem = async (key: string, value: string) => {
     if (isWeb) {
         try {
@@ -15,6 +20,9 @@ export const saveItem = async (key: string, value: string) => {
     }
 };
 
+/**
+ * Retrieve saved information (like looking in the digital safe).
+ */
 export const getItem = async (key: string) => {
     if (isWeb) {
         if (typeof localStorage !== 'undefined') {
@@ -26,6 +34,9 @@ export const getItem = async (key: string) => {
     }
 };
 
+/**
+ * Remove information (clean it out of the safe).
+ */
 export const deleteItem = async (key: string) => {
     if (isWeb) {
         if (typeof localStorage !== 'undefined') {

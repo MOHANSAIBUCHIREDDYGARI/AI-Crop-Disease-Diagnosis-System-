@@ -1,14 +1,22 @@
+
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useLanguage } from '../context/LanguageContext';
 
-
 interface ConfidenceBarProps {
     confidence: number;
+    label?: string;
 }
 
-const ConfidenceBar: React.FC<ConfidenceBarProps> = ({ confidence }) => {
+/**
+ * A colorful bar showing how sure the AI is about its guess.
+ * Green = Very sure
+ * Yellow = Pretty sure
+ * Red = Not so sure (might be wrong)
+ */
+const ConfidenceBar: React.FC<ConfidenceBarProps> = ({ confidence, label }) => {
     const { t } = useLanguage();
+
     const getBarColor = () => {
         if (confidence > 80) return '#4caf50'; // Green
         if (confidence > 50) return '#ffeb3b'; // Yellow
@@ -18,7 +26,7 @@ const ConfidenceBar: React.FC<ConfidenceBarProps> = ({ confidence }) => {
     return (
         <View style={styles.container}>
             <View style={styles.labelContainer}>
-                <Text style={styles.label}>{t('confidenceScore')}</Text>
+                <Text style={styles.label}>{label || t('confidenceScore')}</Text>
                 <Text style={styles.value}>{confidence.toFixed(1)}%</Text>
             </View>
             <View style={styles.barBackground}>

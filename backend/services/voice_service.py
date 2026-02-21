@@ -6,30 +6,24 @@ from config.settings import settings
 
 def generate_voice(text: str, language: str = 'en', slow: bool = False) -> Optional[str]:
     """
-    Generate voice output from text using Google Text-to-Speech
-    
-    Args:
-        text: Text to convert to speech
-        language: Language code (en, hi, te, ta, etc.)
-        slow: Whether to speak slowly
-        
-    Returns:
-        Path to generated audio file or None if failed
+    Turn text into an MP3 audio file using Google Text-to-Speech (gTTS).
+    We save these files so the app can play them for farmers who prefer listening.
     """
     try:
-        # Create voice output directory if it doesn't exist
+        # Create the folder if it doesn't exist
         os.makedirs(settings.VOICE_OUTPUT_FOLDER, exist_ok=True)
         
-        # Create unique filename based on text and language
+        # Create a unique filename based on the text 
+        # (so we don't generate the same audio twice - saves time!)
         text_hash = hashlib.md5(f"{text}_{language}".encode()).hexdigest()
         filename = f"voice_{text_hash}.mp3"
         filepath = os.path.join(settings.VOICE_OUTPUT_FOLDER, filename)
         
-        # Check if file already exists (cache)
+        # If we already made this audio before, just return it
         if os.path.exists(filepath):
             return filepath
         
-        # Map language codes to gTTS supported codes
+        # Map our app's language codes to what Google understands
         lang_map = {
             'en': 'en',
             'hi': 'hi',
@@ -41,7 +35,7 @@ def generate_voice(text: str, language: str = 'en', slow: bool = False) -> Optio
         
         gtts_lang = lang_map.get(language, 'en')
         
-        # Generate speech
+        # Generate the audio
         tts = gTTS(text=text, lang=gtts_lang, slow=slow)
         tts.save(filepath)
         
@@ -53,30 +47,24 @@ def generate_voice(text: str, language: str = 'en', slow: bool = False) -> Optio
 
 def generate_diagnosis_voice(diagnosis_result: dict, language: str = 'en') -> Optional[str]:
     """
-    Generate voice output for diagnosis result
-    
-    Args:
-        diagnosis_result: Diagnosis result dictionary
-        language: Language code
-        
-    Returns:
-        Path to generated audio file
+    Create a spoken summary of the diagnosis.
+    "Good news! Your plant is healthy." or "Disease detected: Early Blight."
     """
-    # Build diagnosis message
+    
     crop = diagnosis_result.get('crop_local', diagnosis_result.get('crop', ''))
     disease = diagnosis_result.get('disease_local', diagnosis_result.get('disease', ''))
     confidence = diagnosis_result.get('confidence', 0)
     severity = diagnosis_result.get('severity_percent', 0)
     stage = diagnosis_result.get('stage_local', diagnosis_result.get('stage', ''))
     
-    # Create message based on language
+    # English script
     if language == 'en':
         if 'Healthy' in disease:
             message = f"Good news! Your {crop} plant is healthy. No disease detected. Confidence: {confidence} percent."
         else:
             message = f"Disease detected in your {crop} plant. Disease name: {disease}. Confidence: {confidence} percent. Severity: {severity} percent. Stage: {stage}."
     else:
-        # For other languages, use translated text
+        # Simple localized script (just key facts)
         if 'Healthy' in disease:
             message = f"{crop} {disease}। {confidence}%"
         else:
@@ -86,14 +74,8 @@ def generate_diagnosis_voice(diagnosis_result: dict, language: str = 'en') -> Op
 
 def generate_pesticide_voice(pesticide_info: dict, language: str = 'en') -> Optional[str]:
     """
-    Generate voice output for pesticide instructions
-    
-    Args:
-        pesticide_info: Pesticide information dictionary
-        language: Language code
-        
-    Returns:
-        Path to generated audio file
+    Read out the pesticide instructions.
+    Important for safety!
     """
     name = pesticide_info.get('name', '')
     dosage = pesticide_info.get('dosage_per_acre', '')
@@ -109,14 +91,7 @@ def generate_pesticide_voice(pesticide_info: dict, language: str = 'en') -> Opti
 
 def generate_prevention_voice(prevention_steps: str, language: str = 'en') -> Optional[str]:
     """
-    Generate voice output for prevention steps
-    
-    Args:
-        prevention_steps: Prevention steps text
-        language: Language code
-        
-    Returns:
-        Path to generated audio file
+    Read out how to prevent the disease from spreading.
     """
     if language == 'en':
         message = f"Prevention steps: {prevention_steps}"
@@ -127,14 +102,7 @@ def generate_prevention_voice(prevention_steps: str, language: str = 'en') -> Op
 
 def generate_cost_voice(cost_info: dict, language: str = 'en') -> Optional[str]:
     """
-    Generate voice output for cost information
-    
-    Args:
-        cost_info: Cost information dictionary
-        language: Language code
-        
-    Returns:
-        Path to generated audio file
+    Read out the estimated costs for treatment.
     """
     treatment_cost = cost_info.get('treatment_cost', 0)
     prevention_cost = cost_info.get('prevention_cost', 0)
@@ -156,15 +124,12 @@ def generate_cost_voice(cost_info: dict, language: str = 'en') -> Optional[str]:
 
 def cleanup_old_voice_files(days: int = 7):
     """
-    Clean up voice files older than specified days
-    
-    Args:
-        days: Number of days to keep files
+    Housekeeping! Delete audio files older than a week to save space.
     """
     try:
         import time
         current_time = time.time()
-        max_age = days * 24 * 60 * 60  # Convert days to seconds
+        max_age = days * 24 * 60 * 60  
         
         for filename in os.listdir(settings.VOICE_OUTPUT_FOLDER):
             filepath = os.path.join(settings.VOICE_OUTPUT_FOLDER, filename)

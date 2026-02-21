@@ -21,6 +21,7 @@ def calculate_treatment_cost(
     Returns:
         Dictionary with cost breakdown
     """
+    # If no pesticides are recommended, return zero cost
     if not pesticides:
         return {
             'pesticide_cost': 0,
@@ -31,27 +32,27 @@ def calculate_treatment_cost(
     
     # Determine number of applications based on severity
     if severity_percent < 5:
-        applications = 1  # Preventive spray
+        applications = 1  # Preventive
     elif severity_percent < 25:
-        applications = 2  # Early stage - 2 applications
+        applications = 2  # Mild
     elif severity_percent < 50:
-        applications = 3  # Moderate - 3 applications
+        applications = 3  # Moderate
     else:
-        applications = 4  # Severe - 4 applications
+        applications = 4  # Severe
     
     # Calculate pesticide cost
     total_pesticide_cost = 0
     pesticide_details = []
     
-    for pesticide in pesticides[:3]:  # Use top 3 recommended
-        # Extract quantity from dosage (e.g., "2-3 kg" -> 2.5 kg average)
+    for pesticide in pesticides[:3]:  # Limit to top 3 recommendations
+        # Get dosage and extract numeric quantity
         dosage_text = pesticide.get('dosage_per_acre', '1 liter')
         quantity_per_acre = extract_quantity(dosage_text)
         
-        # Total quantity needed
+        # Calculate total quantity needed
         total_quantity = quantity_per_acre * land_area * applications
         
-        # Cost calculation
+        # Calculate cost
         cost_per_unit = pesticide.get('cost_per_liter', 500)
         pesticide_cost = total_quantity * cost_per_unit
         
@@ -65,11 +66,11 @@ def calculate_treatment_cost(
             'total_cost': pesticide_cost
         })
     
-    # Calculate labor cost (per acre per application)
-    labor_cost_per_acre = 200  # INR per acre per spray
+    # Calculate labor cost
+    labor_cost_per_acre = 200  # Estimate
     total_labor_cost = labor_cost_per_acre * land_area * applications
     
-    # Total treatment cost
+    # Total treatment cost (pesticides + labor)
     total_treatment_cost = total_pesticide_cost + total_labor_cost
     
     return {
@@ -92,12 +93,13 @@ def calculate_prevention_cost(land_area: float, crop: str) -> Dict:
     Returns:
         Dictionary with prevention cost breakdown
     """
-    # Prevention measures cost per acre
-    preventive_spray_cost = 300  # Organic/preventive spray per acre
-    monitoring_cost = 100  # Regular monitoring per acre
-    good_practices_cost = 200  # Mulching, spacing, etc. per acre
     
-    # Number of preventive applications per season
+    # Estimated costs for preventive measures
+    preventive_spray_cost = 300  # Per acre
+    monitoring_cost = 100  # Per acre
+    good_practices_cost = 200  # Per acre
+    
+    # Number of preventive applications
     preventive_applications = 2
     
     total_prevention_cost = (
@@ -135,22 +137,23 @@ def calculate_total_cost(
     Returns:
         Complete cost breakdown
     """
-    # Get recommended pesticides
+    
+    # Get pesticide recommendations based on severity
     recommendations = get_severity_based_recommendations(disease_name, severity_percent, crop)
     pesticides = recommendations.get('recommended_pesticides', [])
     
     # Calculate treatment cost
     treatment = calculate_treatment_cost(pesticides, land_area, severity_percent)
     
-    # Calculate prevention cost
+    # Calculate prevention cost if requested
     prevention = calculate_prevention_cost(land_area, crop) if include_prevention else {
         'total_prevention_cost': 0
     }
     
-    # Total cost
+    # Calculate total cost
     total_cost = treatment['total_treatment_cost'] + prevention['total_prevention_cost']
     
-    # Cost comparison
+    # Prepare comparison data
     cost_comparison = {
         'treatment_cost': treatment['total_treatment_cost'],
         'prevention_cost': prevention['total_prevention_cost'],
@@ -187,16 +190,16 @@ def extract_quantity(dosage_text: str) -> float:
     numbers = re.findall(r'\d+\.?\d*', dosage_text)
     
     if not numbers:
-        return 1.0  # Default
+        return 1.0  # Default if no number found
     
-    # If range (e.g., "2-3"), take average
+    # If range is given (e.g., "2-3 kg"), take average
     if len(numbers) >= 2:
         return (float(numbers[0]) + float(numbers[1])) / 2
     
-    # Single number
+    # If single number, use it
     quantity = float(numbers[0])
     
-    # Convert to liters if in ml or grams to kg
+    # Convert units if necessary (e.g., ml/gram to liter/kg)
     if 'ml' in dosage_text.lower() or 'gram' in dosage_text.lower():
         quantity = quantity / 1000
     
@@ -266,6 +269,7 @@ def get_cost_per_acre_comparison(disease_name: str, crop: str) -> Dict:
     
     comparison = {}
     
+    # Calculate cost for each severity level
     for level_name, severity in severity_levels:
         cost_data = calculate_total_cost(disease_name, severity, 1.0, crop)
         comparison[level_name] = {

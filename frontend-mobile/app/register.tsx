@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { Mail, Lock, User, Leaf, Phone, Map } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
+import { T } from '../components/ui/T';
 
 export default function RegisterScreen() {
     const [email, setEmail] = useState('');
@@ -13,15 +15,17 @@ export default function RegisterScreen() {
     const [loading, setLoading] = useState(false);
     const { signIn } = useAuth();
     const router = useRouter();
+    const { t } = useLanguage();
 
     const handleRegister = async () => {
         if (!email || !password || !name) {
-            Alert.alert('Error', 'Please fill in all required fields');
+            Alert.alert(t('error'), t('registerErrorMissing'));
             return;
         }
 
         setLoading(true);
         try {
+            // Create a new account on the server
             const response = await api.post('/user/register', {
                 email,
                 password,
@@ -29,11 +33,13 @@ export default function RegisterScreen() {
                 farm_size: farmSize ? parseFloat(farmSize) : 0,
                 preferred_language: 'en'
             });
-            await signIn(response.data.token, response.data.user);
-            router.replace('/(tabs)');
+
+            // Ask the user to login manually
+            Alert.alert(t('success'), t('registerSuccess'));
+            router.replace('/login');
         } catch (error: any) {
-            const message = error.response?.data?.error || 'Registration failed. Please try again.';
-            Alert.alert('Error', message);
+            const message = error.response?.data?.error || t('registerErrorInvalid');
+            Alert.alert(t('error'), message);
         } finally {
             setLoading(false);
         }
@@ -46,8 +52,8 @@ export default function RegisterScreen() {
         >
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>Create Account</Text>
-                    <Text style={styles.subtitle}>Join thousands of farmers protecting their livelihood</Text>
+                    <T style={styles.title}>createAccountTitle</T>
+                    <T style={styles.subtitle}>joinCommunity</T>
                 </View>
 
                 <View style={styles.form}>
@@ -55,7 +61,7 @@ export default function RegisterScreen() {
                         <User size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Full Name"
+                            placeholder={t('namePlaceholder')}
                             value={name}
                             onChangeText={setName}
                         />
@@ -65,7 +71,7 @@ export default function RegisterScreen() {
                         <Mail size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Email Address"
+                            placeholder={t('emailPlaceholder')}
                             value={email}
                             onChangeText={setEmail}
                             keyboardType="email-address"
@@ -77,7 +83,7 @@ export default function RegisterScreen() {
                         <Lock size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Password"
+                            placeholder={t('passwordPlaceholder')}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -88,7 +94,7 @@ export default function RegisterScreen() {
                         <Map size={20} color="#666" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Farm Size (Acre) - Optional"
+                            placeholder={t('farmSizePlaceholder')}
                             value={farmSize}
                             onChangeText={setFarmSize}
                             keyboardType="numeric"
@@ -103,14 +109,14 @@ export default function RegisterScreen() {
                         {loading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.registerButtonText}>Register</Text>
+                            <T style={styles.registerButtonText}>registerButton</T>
                         )}
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Already have an account? </Text>
+                        <T style={styles.footerText}>haveAccount</T>
                         <TouchableOpacity onPress={() => router.back()}>
-                            <Text style={styles.footerLink}>Login</Text>
+                            <T style={styles.footerLink}>loginTitle</T>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -122,12 +128,12 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fdf8',
+        backgroundColor: '#fff',
     },
     scrollContainer: {
         flexGrow: 1,
-        justifyContent: 'center',
         padding: 24,
+        justifyContent: 'center',
     },
     header: {
         alignItems: 'center',
@@ -136,8 +142,9 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#2e7d32',
+        color: '#1b5e20',
         marginBottom: 8,
+        letterSpacing: 0.5,
     },
     subtitle: {
         fontSize: 16,
@@ -151,51 +158,56 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
+        backgroundColor: '#f5f5f5',
+        borderRadius: 16,
         marginBottom: 16,
-        paddingHorizontal: 12,
-        height: 56,
+        paddingHorizontal: 16,
+        height: 60,
+        borderWidth: 1,
+        borderColor: 'transparent',
     },
     inputIcon: {
-        marginRight: 12,
+        marginRight: 16,
+        opacity: 0.5,
     },
     input: {
         flex: 1,
         fontSize: 16,
         color: '#333',
+        fontWeight: '500',
     },
     registerButton: {
         backgroundColor: '#4caf50',
-        borderRadius: 12,
-        height: 56,
+        borderRadius: 16,
+        height: 60,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 8,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        marginTop: 16,
+        shadowColor: '#4caf50',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 8,
     },
     registerButtonText: {
         color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
+        letterSpacing: 1,
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 24,
+        marginTop: 32,
+        alignItems: 'center',
     },
     footerText: {
-        fontSize: 14,
-        color: '#666',
+        fontSize: 15,
+        color: '#888',
+        marginRight: 8,
     },
     footerLink: {
-        fontSize: 14,
+        fontSize: 15,
         color: '#2e7d32',
         fontWeight: 'bold',
     },

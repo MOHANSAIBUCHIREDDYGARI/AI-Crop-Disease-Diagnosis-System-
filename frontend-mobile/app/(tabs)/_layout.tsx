@@ -16,7 +16,6 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      key={language} // FORCE Re-render of the entire Tab Bar when language changes
       screenOptions={{
         tabBarActiveTintColor: '#4caf50',
         tabBarInactiveTintColor: '#999',
@@ -28,17 +27,17 @@ export default function TabLayout() {
         },
       }}>
 
-      {/* 1. Diagnose (Home) */}
+      {/* 1. Diagnose Tab (The Home Screen) */}
       <Tabs.Screen
         name="index"
         options={{
           tabBarLabel: t('tab_diagnose'),
-          title: t('tab_diagnose'), // Fallback
+          title: t('tab_diagnose'),
           tabBarIcon: ({ color, size }) => <ShieldAlert size={size} color={color} />,
         }}
       />
 
-      {/* 2. Explore (Moved here to verify update) */}
+      {/* 2. Explore Tab (Resources, Guides) */}
       <Tabs.Screen
         name="explore"
         options={{
@@ -48,7 +47,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 3. History */}
+      {/* 3. History Tab (Past Diagnoses) */}
       <Tabs.Screen
         name="history"
         options={{
@@ -58,7 +57,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 4. Chatbot */}
+      {/* 4. Chat Tab (AI Assistant) */}
       <Tabs.Screen
         name="chat"
         options={{
