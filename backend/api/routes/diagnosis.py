@@ -3,44 +3,51 @@ import os
 import sys
 from werkzeug.utils import secure_filename
 import datetime
-from bson.objectid import ObjectId
 
+# Cleanly add the project root to our python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from database.db_connection import db
 from config.settings import settings
-from utils.image_quality_check import check_image_quality
+from utils.image_quality_check import check_image_quality, check_content_validity
 from utils.preprocess import preprocess_image
 from utils.validators import validate_diagnosis_request
-from services.language_service import translate_diagnosis_result, translate_disease_info
+from services.language_service import translate_diagnosis_result, translate_disease_info, translate_pesticide_info, translate_text, get_translated_ui_labels
 from services.voice_service import generate_diagnosis_voice
 from services.pesticide_service import get_severity_based_recommendations
 from services.cost_service import calculate_total_cost
 from services.weather_service import get_weather_data, get_weather_based_advice
 from api.routes.user import verify_token
 
-# Import ML prediction function
+
+# Ensure we can find the ML models
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'ml'))
 from final_predictor import full_prediction
 
+# Organize our diagnosis routes
 diagnosis_bp = Blueprint('diagnosis', __name__)
 
 def allowed_file(filename):
+    """Check if the uploaded file has a valid extension (like .jpg or .png)"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in settings.ALLOWED_EXTENSIONS
 
 @diagnosis_bp.route('/detect', methods=['POST'])
 def detect_disease():
-    """Detect disease from uploaded image (authentication optional)"""
+    """
+    The main feature: Detect disease from an uploaded image!
+    Users can be logged in or anonymous.
+    """
     try:
-        # Check for authentication (optional)
-        user_id = None
-        language = 'en'  # Default language
         
-        # DEBUG: Print request details
+        user_id = None
+        language = 'en'  
+        
+        # Debugging prints to help us see what's coming in
         print(f"DEBUG: Request files: {request.files}")
         print(f"DEBUG: Request form: {request.form}")
         print(f"DEBUG: Request headers: {dict(request.headers)}")
         
+        # Check if the user is logged in
         auth_header = request.headers.get('Authorization')
         if auth_header and auth_header.startswith('Bearer '):
             token = auth_header.split(' ')[1]
@@ -50,10 +57,9 @@ def detect_disease():
                 user_id = token_data['user_id']
                 
                 # Use their preferred language if found
-                users_collection = db.get_collection('users')
-                user = users_collection.find_one({'_id': ObjectId(user_id)})
+                user = db.execute_query('SELECT preferred_language FROM users WHERE id = ?', (user_id,))
                 if user:
-                    language = user.get('preferred_language', 'en')
+                    language = user[0]['preferred_language']
         
         
         # If the app explicitly sets a language (e.g., user switched it temporarily), use that
@@ -61,7 +67,7 @@ def detect_disease():
             language = request.form['language']
         
         
-        # Check if image file is present
+        # Make sure they actually sent an image
         if 'image' not in request.files:
             print("DEBUG: No 'image' key in request.files")
             return jsonify({'error': 'No image file provided'}), 400
@@ -76,18 +82,21 @@ def detect_disease():
             print(f"DEBUG: Invalid file type: {file.filename}")
             return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG allowed'}), 400
         
-        # Get crop type
+        
+        # Identify the crop (e.g., tomato, rice)
         crop = request.form.get('crop', '').lower()
         print(f"DEBUG: Crop value: '{crop}'")
-        if not crop or crop not in ['tomato', 'rice', 'wheat', 'cotton']:
+        if not crop or crop not in ['grape', 'maize', 'potato', 'rice', 'tomato']:
             print(f"DEBUG: Invalid crop: '{crop}'")
-            return jsonify({'error': 'Valid crop type required (tomato, rice, potato)'}), 400
+            return jsonify({'error': 'Valid crop type required (tomato, cotton)'}), 400
         
-        # Get optional parameters
+        
+        # Get location for weather-based advice (optional)
         latitude = request.form.get('latitude', type=float)
         longitude = request.form.get('longitude', type=float)
         
-        # Save uploaded file
+        
+        # Save the file securely so we can process it
         filename = secure_filename(file.filename)
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         user_prefix = f"{user_id}_" if user_id else "anonymous_"
@@ -95,25 +104,80 @@ def detect_disease():
         filepath = os.path.join(settings.UPLOAD_FOLDER, filename)
         file.save(filepath)
         
-        # Check image quality
+        
+        # --- QUALITY CHECKS ---
+        # First, is the image blurry or too dark?
         print(f"DEBUG: Checking image quality for: {filename}")
         quality_result = check_image_quality(filepath)
         print(f"DEBUG: Quality result: {quality_result}")
         
+        quality_warning = None  
+        
+        
         if not quality_result['is_valid']:
-            print(f"DEBUG: Image rejected - {quality_result.get('reason')}")
-            os.remove(filepath)  # Delete poor quality image
+            
+            # If dimensions are totally wrong, block it
+            if 'dimensions' in quality_result and quality_result['quality_score'] == 0.0:
+                 if os.path.exists(filepath):
+                    os.remove(filepath)
+                 return jsonify({
+                    'error': 'Image Rejected',
+                    'message': quality_result.get('reason'),
+                    'details': 'Image dimensions are invalid.'
+                }), 400
+
+            
+            # For other issues like blurriness, explain why
+            error_msg = quality_result.get('reason', 'Image quality too low')
+            details_msg = 'Please upload a clear, focused image.'
+            
+            # Translate error if needed
+            if language != 'en':
+                try:
+                    error_msg = translate_text(error_msg, language)
+                    details_msg = translate_text(details_msg, language)
+                except:
+                    pass
+
+            
+            if os.path.exists(filepath):
+                os.remove(filepath)
+
             return jsonify({
-                'error': 'Image quality too low',
-                'reason': quality_result.get('reason'),
-                'quality_score': quality_result.get('quality_score'),
-                'blur_score': quality_result.get('blur_score'),
-                'brightness_score': quality_result.get('brightness_score')
+                'error': 'Image Rejected',
+                'message': error_msg,
+                'details': details_msg
             }), 400
         
-        print(f"DEBUG: Image quality check passed!")
         
-        # Perform disease detection
+        # Second, does the image actually look like a leaf?
+        print(f"DEBUG: Checking content validity for: {filename}")
+        content_result = check_content_validity(filepath)
+        print(f"DEBUG: Content result: {content_result}")
+        
+        if not content_result['is_valid']:
+            
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            
+            error_msg = content_result.get('reason')
+            details_msg = 'Please upload a clear image of a crop leaf.'
+            
+            if language != 'en':
+                try:
+                    error_msg = translate_text(error_msg, language)
+                    details_msg = translate_text(details_msg, language)
+                except:
+                    pass
+            
+            return jsonify({
+                'error': 'Image Rejected',
+                'message': error_msg,
+                'details': details_msg
+            }), 400
+        
+        
+        # --- AI PREDICTION ---
         print(f"DEBUG: Starting disease prediction for crop: {crop}")
         prediction_result = full_prediction(filepath, crop)
         print(f"DEBUG: Prediction result: {prediction_result}")
@@ -126,38 +190,18 @@ def detect_disease():
         
         # --- GATHER INFORMATION ---
         # 1. Get detailed info about the disease from our database
-
-        diseases_collection = db.get_collection('diseases')
         disease_data = {}
         try:
-            # Try exact match first
+            disease_info = db.execute_query(
+                'SELECT * FROM diseases WHERE crop = ? AND disease_name = ?',
+                (crop, prediction_result['disease'])
+            )
             
-            # MongoDB Find
-            disease_info = diseases_collection.find_one({'crop': crop, 'disease_name': prediction_result['disease']})
-            
-            if not disease_info:
-                # Try with crop prefix and triple underscores (e.g., "Tomato___Target_Spot")
-                disease_with_prefix = f"{crop.capitalize()}___{prediction_result['disease'].replace(' ', '_')}"
-                disease_info = diseases_collection.find_one({'crop': crop, 'disease_name': disease_with_prefix})
-            
-            if not disease_info:
-                # Try without crop prefix but with underscores
-                disease_info = diseases_collection.find_one({'crop': crop, 'disease_name': prediction_result['disease'].replace(' ', '_')})
-
-            if not disease_info:
-                # Fallback: Case-insensitive search 
-                # Note: Regex queries can be slow, but this is a fallback
-                import re
-                disease_info = diseases_collection.find_one({
-                    'crop': crop, 
-                    'disease_name': re.compile(f"^{re.escape(prediction_result['disease'])}$", re.IGNORECASE)
-                })
-                
             if disease_info:
                 disease_data = {
-                    'description': disease_info.get('description'),
-                    'symptoms': disease_info.get('symptoms'),
-                    'prevention_steps': disease_info.get('prevention_steps')
+                    'description': disease_info[0]['description'],
+                    'symptoms': disease_info[0]['symptoms'],
+                    'prevention_steps': disease_info[0]['prevention_steps']
                 }
                 
                 # Translate it
@@ -165,10 +209,6 @@ def detect_disease():
         except Exception as e:
             print(f"DEBUG: Error getting disease info: {e}")
             disease_data = {}
-            
-        # DEBUG: Check what we are looking for
-        print(f"DEBUG: Looking for disease: '{prediction_result['disease']}' in crop: '{crop}'")
-        print(f"DEBUG: Disease info found: {disease_data}")
         
         
         # 2. Get pesticide recommendations based on severity
@@ -179,6 +219,7 @@ def detect_disease():
                 prediction_result['severity_percent'],
                 crop
             )
+            
             
             # Translate recommendations if needed
             if language != 'en' and pesticide_recommendations:
@@ -203,37 +244,54 @@ def detect_disease():
         
         # 3. Get weather advice if we have location
         weather_advice = None
-        if latitude and longitude:
-            weather_data = get_weather_data(latitude, longitude)
-            if weather_data:
-                weather_advice = get_weather_based_advice(weather_data, prediction_result['disease'])
+        try:
+            if latitude and longitude:
+                weather_data = get_weather_data(latitude, longitude)
+                if weather_data:
+                    weather_advice = get_weather_based_advice(weather_data, prediction_result['disease'])
+        except Exception as e:
+            print(f"DEBUG: Error getting weather advice: {e}")
+            weather_advice = None
         
-        # Save diagnosis to history (only if user is logged in)
+        
+        # --- SAVE HISTORY ---
         diagnosis_id = None
         try:
             if user_id:
-                diagnosis_collection = db.get_collection('diagnosis_history')
+                diagnosis_id = db.execute_insert(
+                    '''INSERT INTO diagnosis_history 
+                       (user_id, crop, disease, confidence, severity_percent, stage, image_path, latitude, longitude)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (
+                        user_id,
+                        crop,
+                        prediction_result['disease'],
+                        prediction_result['confidence'],
+                        prediction_result['severity_percent'],
+                        prediction_result['stage'],
+                        filepath,
+                        latitude,
+                        longitude
+                    )
+                )
                 
-                diagnosis_doc = {
-                    'user_id': user_id, # Keep as string for now, or match User ID type
-                    'crop': crop,
-                    'disease': prediction_result['disease'],
-                    'confidence': prediction_result['confidence'],
-                    'severity_percent': prediction_result['severity_percent'],
-                    'stage': prediction_result['stage'],
-                    'image_path': filepath,
-                    'latitude': latitude,
-                    'longitude': longitude,
-                    'language': language, # Store the language used at time of diagnosis
-                    'created_at': datetime.datetime.utcnow(),
-                    
-                    # Store pesticides in the same document (NoSQL Advantage!)
-                    'pesticide_recommendations': pesticide_recommendations.get('recommended_pesticides', [])[:3] 
-                }
                 
-                result = diagnosis_collection.insert_one(diagnosis_doc)
-                diagnosis_id = str(result.inserted_id)
-                
+                # Also save the recommended pesticides for future reference
+                for pesticide in pesticide_recommendations.get('recommended_pesticides', [])[:3]:
+                    db.execute_insert(
+                        '''INSERT INTO pesticide_recommendations 
+                           (diagnosis_id, pesticide_name, dosage, frequency, cost_per_unit, is_organic, warnings)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                        (
+                            diagnosis_id,
+                            pesticide['name'],
+                            pesticide['dosage_per_acre'],
+                            pesticide['frequency'],
+                            pesticide['cost_per_liter'],
+                            pesticide['is_organic'],
+                            pesticide['warnings']
+                        )
+                    )
         except Exception as e:
             print(f"DEBUG: Error saving to history: {e}")
             diagnosis_id = None
@@ -250,7 +308,8 @@ def detect_disease():
         # Generate an audio file reading out the result
         voice_file = generate_diagnosis_voice(translated_result, language)
         
-        # Prepare response
+        
+        # --- FINAL RESPONSE ---
         response = {
             'diagnosis_id': diagnosis_id,
             'prediction': translated_result,
@@ -261,24 +320,22 @@ def detect_disease():
             'image_quality': quality_result,
             'quality_warning': quality_warning,  
             'language': language,
-            'ui_translations': ui_labels,
-            'debug': {
-                'disease_queried': prediction_result['disease'],
-                'crop_queried': crop,
-                'disease_info_found': bool(disease_data)
-            }
+            'ui_translations': ui_labels
         }
         
         return jsonify(response), 200
         
     except Exception as e:
+        print(f"CRITICAL ERROR in detect_disease: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @diagnosis_bp.route('/history', methods=['GET'])
 def get_history():
-    """Get user's diagnosis history"""
+    """Get the user's past diagnoses (so they can track progress)"""
     try:
-        # Verify token
+        
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'No token provided'}), 401
@@ -291,49 +348,43 @@ def get_history():
         
         user_id = token_data['user_id']
         
-        # Get pagination parameters
+        
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
-        skip = (page - 1) * per_page
+        offset = (page - 1) * per_page
         
-        diagnosis_collection = db.get_collection('diagnosis_history')
         
         # Fetch records from the database
-        cursor = diagnosis_collection.find({'user_id': user_id})\
-            .sort('created_at', -1)\
-            .skip(skip)\
-            .limit(per_page)
-            
-        history = list(cursor)
-
+        history = db.execute_query(
+            '''SELECT * FROM diagnosis_history 
+               WHERE user_id = ? 
+               ORDER BY created_at DESC 
+               LIMIT ? OFFSET ?''',
+            (user_id, per_page, offset)
+        )
+        
         
         language = 'en'
-        users_collection = db.get_collection('users')
-        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        user = db.execute_query('SELECT preferred_language FROM users WHERE id = ?', (user_id,))
         if user:
-            current_pref_language = user.get('preferred_language', 'en')
-        else:
-            current_pref_language = 'en'
+            language = user[0]['preferred_language']
 
         history_list = []
         for record in history:
-            # Use the language stored at diagnosis time, fallback to English if missing
-            record_language = record.get('language', 'en')
-            
             item = {
-                'id': str(record['_id']),
+                'id': record['id'],
                 'crop': record['crop'],
                 'disease': record['disease'],
                 'confidence': record['confidence'],
                 'severity_percent': record['severity_percent'],
                 'stage': record['stage'],
-                'created_at': record['created_at'],
-                'language': record_language
+                'created_at': record['created_at']
             }
             
-            # Translate record so it reflects the ORIGINAL diagnosis language (Sticky)
-            if record_language != 'en':
-                translated = translate_diagnosis_result(item, record_language)
+            
+            # Translate each record so it shows up in the user's language
+            if language != 'en':
+                translated = translate_diagnosis_result(item, language)
                 
                 if 'disease_local' in translated:
                     item['disease'] = translated['disease_local']
@@ -349,11 +400,11 @@ def get_history():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@diagnosis_bp.route('/<diagnosis_id>', methods=['GET'])
+@diagnosis_bp.route('/<int:diagnosis_id>', methods=['GET'])
 def get_diagnosis_details(diagnosis_id):
-    """Get detailed diagnosis information"""
+    """Get the full details of a specific diagnosis"""
     try:
-        # Verify token
+        
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'No token provided'}), 401
@@ -366,93 +417,63 @@ def get_diagnosis_details(diagnosis_id):
         
         user_id = token_data['user_id']
         
-        diagnosis_collection = db.get_collection('diagnosis_history')
         
-        try:
-            oid = ObjectId(diagnosis_id)
-        except:
-             return jsonify({'error': 'Invalid ID format'}), 400
-
-        diagnosis = diagnosis_collection.find_one({'_id': oid, 'user_id': user_id})
+        diagnosis = db.execute_query(
+            'SELECT * FROM diagnosis_history WHERE id = ? AND user_id = ?',
+            (diagnosis_id, user_id)
+        )
         
         if not diagnosis:
             return jsonify({'error': 'Diagnosis not found'}), 404
         
+        diagnosis = diagnosis[0]
         
-        # Fetch the pesticides (Stored inside the document now!)
-        pesticides = diagnosis.get('pesticide_recommendations', [])
+        
+        # Fetch the pesticides we recommended back then
+        pesticides = db.execute_query(
+            'SELECT * FROM pesticide_recommendations WHERE diagnosis_id = ?',
+            (diagnosis_id,)
+        )
         
         pesticide_list = []
         for p in pesticides:
-            # Handle both old SQL style (if we migrated data) or new embedded style
-            # Here we assume new embedded style which is a dict
-            if isinstance(p, dict):
-                pesticide_list.append({
-                    'name': p.get('name') or p.get('pesticide_name'),
-                    'dosage': p.get('dosage_per_acre') or p.get('dosage'),
-                    'frequency': p.get('frequency'),
-                    'cost_per_unit': p.get('cost_per_liter') or p.get('cost_per_unit'),
-                    'is_organic': p.get('is_organic'),
-                    'warnings': p.get('warnings')
-                })
+            pesticide_list.append({
+                'name': p['pesticide_name'],
+                'dosage': p['dosage'],
+                'frequency': p['frequency'],
+                'cost_per_unit': p['cost_per_unit'],
+                'is_organic': bool(p['is_organic']),
+                'warnings': p['warnings']
+            })
         
         
-        # Fetch the disease info
-        diseases_collection = db.get_collection('diseases')
-        disease_data = {}
-        try:
-            disease_info = diseases_collection.find_one({'crop': diagnosis['crop'], 'disease_name': diagnosis['disease']})
-            if not disease_info:
-                disease_with_prefix = f"{diagnosis['crop'].capitalize()}___{diagnosis['disease'].replace(' ', '_')}"
-                disease_info = diseases_collection.find_one({'crop': diagnosis['crop'], 'disease_name': disease_with_prefix})
-            if not disease_info:
-                disease_info = diseases_collection.find_one({'crop': diagnosis['crop'], 'disease_name': diagnosis['disease'].replace(' ', '_')})
-            if disease_info:
-                disease_data = {
-                    'description': disease_info.get('description', ''),
-                    'symptoms': disease_info.get('symptoms', ''),
-                    'prevention_steps': disease_info.get('prevention_steps', ''),
-                    'organic_alternatives': disease_info.get('organic_alternatives', '')
-                }
-                
-                # Sticky Language: Use the language saved with the diagnosis
-                language = diagnosis.get('language', 'en')
-                
-                disease_data = translate_disease_info(disease_data, language)
-            else:
-                language = 'en'
-        except Exception as e:
-            print(f"Error fetching disease info in history: {e}")
-            language = 'en'
-
-        cost_collection = db.get_collection('cost_calculations')
-        cost_data = cost_collection.find_one({'diagnosis_id': str(diagnosis['_id'])})
+        # Fetch cost calculations if they were made
+        cost_data = db.execute_query(
+            'SELECT * FROM cost_calculations WHERE diagnosis_id = ?',
+            (diagnosis_id,)
+        )
         
         cost_info = None
         if cost_data:
             cost_info = {
-                'land_area': cost_data.get('land_area'),
-                'treatment_cost': cost_data.get('treatment_cost'),
-                'prevention_cost': cost_data.get('prevention_cost'),
-                'total_cost': cost_data.get('total_cost')
+                'land_area': cost_data[0]['land_area'],
+                'treatment_cost': cost_data[0]['treatment_cost'],
+                'prevention_cost': cost_data[0]['prevention_cost'],
+                'total_cost': cost_data[0]['total_cost']
             }
-
+        
         response = {
-            'diagnosis_id': str(diagnosis['_id']),
-            'prediction': {
+            'diagnosis': {
+                'id': diagnosis['id'],
                 'crop': diagnosis['crop'],
                 'disease': diagnosis['disease'],
                 'confidence': diagnosis['confidence'],
-                'severity_percent': diagnosis.get('severity_percent', 0),
-                'stage': diagnosis.get('stage', '')
+                'severity_percent': diagnosis['severity_percent'],
+                'stage': diagnosis['stage'],
+                'created_at': diagnosis['created_at']
             },
-            'disease_info': disease_data,
-            'pesticide_recommendations': {
-                'recommended_pesticides': pesticide_list
-            },
-            'weather_advice': None,  # Not stored in history currently
-            'cost': cost_info,
-            'language': language
+            'pesticides': pesticide_list,
+            'cost': cost_info
         }
         
         return jsonify(response), 200
@@ -462,7 +483,7 @@ def get_diagnosis_details(diagnosis_id):
 
 @diagnosis_bp.route('/voice/<filename>', methods=['GET'])
 def get_voice_file(filename):
-    """Serve voice file"""
+    """Serve the audio file so the app can play it"""
     try:
         filepath = os.path.join(settings.VOICE_OUTPUT_FOLDER, filename)
         if os.path.exists(filepath):

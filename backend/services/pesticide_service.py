@@ -17,65 +17,55 @@ def get_pesticides_for_disease(disease_name: str, crop: str, prefer_organic: boo
     disease_clean = disease_name.replace('___', ' ').replace('_', ' ')
     
     # We look in our database for any pesticide that mentions this disease in its 'target_diseases'
-    # using MongoDB regex to simulate SQL 'LIKE'
-    pesticides_collection = db.get_collection('pesticides')
+    query = '''
+        SELECT * FROM pesticides 
+        WHERE target_diseases LIKE ? 
+        ORDER BY is_organic DESC, cost_per_liter ASC
+    '''
     
-    # regex pattern: case-insensitive match for the disease name
-    import re
-    regex_pattern = re.compile(re.escape(disease_clean), re.IGNORECASE)
-    
-    # Find pesticides where target_diseases contains the disease name
-    cursor = pesticides_collection.find({'target_diseases': regex_pattern})
+    results = db.execute_query(query, (f'%{disease_clean}%',))
     
     pesticides = []
-    for row in cursor:
+    for row in results:
         pesticide = {
-            'id': str(row['_id']),
+            'id': row['id'],
             'name': row['name'],
-            'type': row.get('type', ''),
-            'dosage_per_acre': row.get('dosage_per_acre', ''),
-            'frequency': row.get('frequency', ''),
-            'cost_per_liter': row.get('cost_per_liter', 0),
-            'is_organic': bool(row.get('is_organic', False)),
-            'is_government_approved': bool(row.get('is_government_approved', False)),
-            'warnings': row.get('warnings', ''),
-            'incompatible_with': row.get('incompatible_with', '')
+            'type': row['type'],
+            'dosage_per_acre': row['dosage_per_acre'],
+            'frequency': row['frequency'],
+            'cost_per_liter': row['cost_per_liter'],
+            'is_organic': bool(row['is_organic']),
+            'is_government_approved': bool(row['is_government_approved']),
+            'warnings': row['warnings'],
+            'incompatible_with': row['incompatible_with']
         }
         pesticides.append(pesticide)
     
-    # Sort: Organic first if requested, then by cost
-    # Python's sort is stable, so we can sort by cost then by organic status
-    pesticides.sort(key=lambda x: x['cost_per_liter'])
-    
+    # If the user loves organic, we make sure those are at the very top
     if prefer_organic:
-        # If prefer_organic is True, we want is_organic=True to come first.
-        # Python sorts False before True, so we sort by (not is_organic) to put True first.
-        pesticides.sort(key=lambda x: not x['is_organic'])
-    else:
-        # Default sort: maybe government approved first? or just cost?
-        # Let's keep cost as the secondary sort we did above.
-        pass
+        pesticides.sort(key=lambda x: (not x['is_organic'], x['cost_per_liter']))
     
     return pesticides
 
 def get_pesticide_by_name(name: str) -> Dict:
     """Find details of a specific pesticide by its name."""
-    pesticides_collection = db.get_collection('pesticides')
-    row = pesticides_collection.find_one({'name': name})
+    query = 'SELECT * FROM pesticides WHERE name = ?'
+    results = db.execute_query(query, (name,))
     
-    if row:
+    if results:
+        row = results[0]
         return {
-            'id': str(row['_id']),
+            'id': row['id'],
             'name': row['name'],
-            'type': row.get('type', ''),
-            'target_diseases': row.get('target_diseases', ''),
-            'dosage_per_acre': row.get('dosage_per_acre', ''),
-            'frequency': row.get('frequency', ''),
-            'cost_per_liter': row.get('cost_per_liter', 0),
-            'is_organic': bool(row.get('is_organic', False)),
-            'is_government_approved': bool(row.get('is_government_approved', False)),
-            'warnings': row.get('warnings', ''),
-            'incompatible_with': row.get('incompatible_with', '')
+            'type': row['type'],
+            'target_diseases': row['target_diseases'],
+            'dosage_per_acre': row['dosage_per_acre'],
+            'frequency': row['frequency'],
+            'cost_per_liter': row['cost_per_liter'],
+            'is_organic': bool(row['is_organic']),
+            'is_government_approved': bool(row['is_government_approved']),
+            'warnings': row['warnings'],
+            'incompatible_with': row['incompatible_with']
         }
     return None
 

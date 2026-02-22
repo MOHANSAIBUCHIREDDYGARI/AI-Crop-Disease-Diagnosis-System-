@@ -5,7 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
-import api from '../../services/api';
+import api, { API_URL } from '../../services/api';
+import { getItem } from '../../services/storage';
 
 interface Message {
     id: string;
@@ -100,36 +101,47 @@ export default function ChatScreen() {
             if (Platform.OS !== 'web') {
                 const uriParts = uri.split('.');
                 const fileExtension = uriParts[uriParts.length - 1];
-                const mimeType = type === 'video' ? `video/${fileExtension}` : `image/${fileExtension}`;
 
                 formData.append('image', {
                     uri: uri,
                     name: `upload.${fileExtension}`,
-                    type: mimeType,
+                    type: type === 'video' ? `video/${fileExtension}` : `image/${fileExtension}`,
                 } as any);
             } else {
                 const startBlob = await fetch(uri).then(r => r.blob());
                 formData.append('image', startBlob, 'upload.jpg');
             }
 
-            const response = await api.post('chatbot/upload', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-                onUploadProgress: (progressEvent) => {
-                    if (progressEvent.total) {
-                        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                        setUploadProgress(percent);
-                    }
-                },
+            const token = await getItem('userToken');
+            const headers: Record<string, string> = {
+                'Accept': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(`${API_URL}chatbot/upload`, {
+                method: 'POST',
+                body: formData,
+                headers: headers
             });
 
-            if (response.data && response.data.file_path) {
-                setServerFilePath(response.data.file_path);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server returned ${response.status}: ${errorText}`);
             }
-        } catch (error) {
-            console.error('Upload failed', error);
-            Alert.alert('Upload Failed', 'Please try attaching the media again.');
+
+            const data = await response.json();
+
+            if (data && data.file_path) {
+                setServerFilePath(data.file_path);
+            }
+        } catch (error: any) {
+            console.error('Upload failed with details:', error);
+            Alert.alert(
+                'Upload Failed',
+                error.message || 'Please try attaching the media again.'
+            );
             setSelectedMedia(null); // Clear selection on failure
         } finally {
             setIsUploading(false);
@@ -214,20 +226,35 @@ export default function ChatScreen() {
             } as any);
             formData.append('language', language || 'en');
 
-            const response = await api.post('chatbot/voice', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+            const token = await getItem('userToken');
+            const headers: Record<string, string> = {
+                'Accept': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(`${API_URL}chatbot/voice`, {
+                method: 'POST',
+                body: formData,
+                headers: headers
             });
 
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server returned ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+
             // Put the text in the input box so the user can send it or edit it
-            if (response.data.transcription) {
-                setInputText(response.data.transcription);
+            if (data.transcription) {
+                setInputText(data.transcription);
             }
 
         } catch (error: any) {
             console.error('Voice send error', error);
-            const errorMessage = error.response?.data?.error || t('failedVoice');
+            const errorMessage = error.message || t('failedVoice');
             Alert.alert(t('error'), errorMessage);
         } finally {
             setLoading(false);
@@ -368,7 +395,34 @@ export default function ChatScreen() {
             />
 
 
-
+            {/* Selected Media Preview */}
+            {selectedMedia && (
+                <View style={styles.mediaPreviewContainer}>
+                    {selectedMedia.type === 'video' ? (
+                        <View style={styles.videoPreview}>
+                            <Video size={24} color="#666" />
+                            <Text style={styles.videoPreviewText}>Video selected</Text>
+                        </View>
+                    ) : (
+                        <Image source={{ uri: selectedMedia.uri }} style={styles.imagePreview} />
+                    )}
+                    <TouchableOpacity
+                        style={styles.removeMediaButton}
+                        onPress={() => {
+                            setSelectedMedia(null);
+                            setServerFilePath(null);
+                        }}
+                    >
+                        <Text style={styles.removeMediaText}>✕</Text>
+                    </TouchableOpacity>
+                    {isUploading && (
+                        <View style={styles.uploadProgressOverlay}>
+                            <ActivityIndicator color="#fff" />
+                            <Text style={styles.uploadProgressText}>{uploadProgress}%</Text>
+                        </View>
+                    )}
+                </View>
+            )}
 
             <View style={styles.inputContainer}>
                 <View style={styles.inputArea}>
@@ -381,6 +435,13 @@ export default function ChatScreen() {
                             multiline
                             maxLength={500}
                         />
+                        <TouchableOpacity
+                            style={styles.micButton}
+                            onPress={pickMedia}
+                            disabled={isUploading || isRecording}
+                        >
+                            <UploadCloud color="#666" size={20} />
+                        </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.micButton}
                             onPress={isRecording ? stopRecordingAndSend : startRecording}
@@ -562,6 +623,7 @@ const styles = StyleSheet.create({
     },
     micButton: {
         padding: 4,
+        marginHorizontal: 4,
     },
     sendButton: {
         width: 44,
@@ -576,6 +638,65 @@ const styles = StyleSheet.create({
     },
     recordingButton: {
         backgroundColor: '#f44336', // Red color while recording
+    },
+    mediaPreviewContainer: {
+        padding: 10,
+        backgroundColor: '#f9f9f9',
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    imagePreview: {
+        width: 60,
+        height: 60,
+        borderRadius: 8,
+    },
+    videoPreview: {
+        width: 60,
+        height: 60,
+        borderRadius: 8,
+        backgroundColor: '#e0e0e0',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    videoPreviewText: {
+        fontSize: 10,
+        color: '#666',
+        marginTop: 4,
+    },
+    removeMediaButton: {
+        position: 'absolute',
+        top: 4,
+        left: 56,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    removeMediaText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    uploadProgressOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 8,
+        marginLeft: 10,
+        width: 60,
+        height: 60,
+    },
+    uploadProgressText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
+        marginTop: 2,
     },
     guestReminder: {
         flexDirection: 'row',

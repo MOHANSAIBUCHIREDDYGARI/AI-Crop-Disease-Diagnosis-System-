@@ -48,6 +48,10 @@ export default function DashboardScreen() {
     description?: string;
   } | null>(null);
 
+  // --- Dynamic Translation State ---
+  const [translatedName, setTranslatedName] = useState<string>('');
+  const [translatedLocation, setTranslatedLocation] = useState<string>('');
+
   // --- Helper Hooks ---
   const cameraRef = useRef<any>(null); // A reference to the camera component so we can tell it to "click"
   const { user, isGuest, updateUser } = useAuth(); // Who is using the app?
@@ -103,13 +107,38 @@ export default function DashboardScreen() {
   // Convert GPS coordinates (lat, lon) into a city name
   const reverseGeocode = async (lat: number, lon: number) => {
     try {
+      // 1. Try Native Expo Location First
       const result = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
-      if (result.length > 0) {
-        return `${result[0].city || result[0].region}, ${result[0].isoCountryCode}`;
+      if (result && result.length > 0) {
+        const bestResult = result[0];
+        const city = bestResult.city || bestResult.district || bestResult.subregion || bestResult.region;
+        const country = bestResult.country || '';
+        if (city) {
+          return `${city}, ${country}`.replace(/,\s*$/, '');
+        }
       }
     } catch (e) {
-      console.log("Reverse geocode failed", e);
+      console.log("Expo native reverse geocode failed, falling back to OSM", e);
     }
+
+    try {
+      // 2. Fallback to OpenStreetMap (Nominatim) for Web or if Expo Native fails
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=jsonv2`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data && data.address) {
+        const city = data.address.city || data.address.town || data.address.village || data.address.county || data.address.state;
+        const country = data.address.country || '';
+        if (city) {
+          return `${city}, ${country}`.replace(/,\s*$/, '');
+        }
+      }
+    } catch (e) {
+      console.log("OSM fallback reverse geocode failed", e);
+    }
+
+    // 3. Ultimate fallback
     return t('yourLocation');
   };
 
@@ -192,7 +221,52 @@ export default function DashboardScreen() {
     })();
   }, []);
 
-  // --- Helper: Language Update ---
+  // --- Helper: Dynamic Translations Update ---
+  // Translate the user's name and location name if the language isn't English
+  useEffect(() => {
+    const translateDynamicContent = async () => {
+      // 1. Determine what needs translating
+      const nameToTranslate = user ? user.name : t('farmer');
+      const locationToTranslate = weather?.location && weather.location !== t('yourLocation') && weather.location !== t('weatherUnavailable')
+        ? weather.location
+        : null;
+
+      // 2. If English, just use as-is
+      if (language === 'en') {
+        setTranslatedName(nameToTranslate);
+        setTranslatedLocation(locationToTranslate || '');
+        return;
+      }
+
+      // 3. Otherwise, batch translate them
+      try {
+        const textsToTranslate: Record<string, string> = {
+          name: nameToTranslate
+        };
+        if (locationToTranslate) {
+          textsToTranslate.location = locationToTranslate;
+        }
+
+        const response = await api.post('translations/batch', {
+          texts: textsToTranslate,
+          target_language: language
+        });
+
+        if (response.data) {
+          if (response.data.name) setTranslatedName(response.data.name);
+          if (response.data.location) setTranslatedLocation(response.data.location);
+        }
+      } catch (error) {
+        console.log('Error translating dynamic content:', error);
+        // Fallback to original text on error
+        setTranslatedName(nameToTranslate);
+        setTranslatedLocation(locationToTranslate || '');
+      }
+    };
+
+    translateDynamicContent();
+  }, [language, user?.name, weather?.location]);
+
   // If the language changes, re-fetch weather to get the translated description
   useEffect(() => {
     if (location) {
@@ -512,7 +586,7 @@ export default function DashboardScreen() {
         <View style={styles.headerLeft}>
           <View>
             <T style={styles.greeting}>namaste</T>
-            <Text style={styles.farmerName}>{user ? user.name : t('farmer')}</Text>
+            <Text style={styles.farmerName}>{translatedName || (user ? user.name : t('farmer'))}</Text>
           </View>
           <TouchableOpacity onPress={() => router.push('/profile')} style={styles.profileAvatarContainer}>
             <Image source={require('../../assets/images/farmer-avatar.png')} style={styles.profileAvatar} />
@@ -538,7 +612,7 @@ export default function DashboardScreen() {
             {location ? (weather ? (weather.description || t(`weather_${weather.code}` as any)) : t('weatherFetching')) : t('weatherUnavailable')}
           </Text>
           <Text style={styles.weatherLocation}>
-            {location ? (weather ? (weather.location || t('yourLocation')) : t('weather')) : t('enableGps')}
+            {location ? (weather ? (translatedLocation || weather.location || t('yourLocation')) : t('weather')) : t('enableGps')}
           </Text>
           <TouchableOpacity
             style={[styles.locationBadge, !location && styles.locationBadgeDisabled]}

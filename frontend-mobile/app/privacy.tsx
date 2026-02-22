@@ -25,37 +25,37 @@ export default function PrivacyScreen() {
                     <View style={styles.iconCircle}>
                         <Shield size={40} color="#2196f3" />
                     </View>
-                    <Text style={styles.title}>Privacy Policy</Text>
-                    <Text style={styles.subtitle}>Your data is safe with us.</Text>
+                    <Text style={styles.title}>{t('privacyPolicyTitle')}</Text>
+                    <Text style={styles.subtitle}>{t('privacySubtitle')}</Text>
                 </View>
 
                 <View style={styles.contentCard}>
                     <View style={styles.policyItem}>
                         <Lock size={20} color="#2196f3" />
-                        <Text style={styles.policyTitle}>Data Security</Text>
+                        <Text style={styles.policyTitle}>{t('privacyDataSecurityTitle')}</Text>
                         <Text style={styles.policyText}>
-                            We use industry-standard encryption to protect your personal information and crop data.
+                            {t('privacyDataSecurityText')}
                         </Text>
                     </View>
 
                     <View style={styles.policyItem}>
                         <EyeOff size={20} color="#2196f3" />
-                        <Text style={styles.policyTitle}>Data Usage</Text>
+                        <Text style={styles.policyTitle}>{t('privacyDataUsageTitle')}</Text>
                         <Text style={styles.policyText}>
-                            Your crop photos are used exclusively for diagnosis and to improve our AI accuracy for all farmers. We never sell your personal details.
+                            {t('privacyDataUsageText')}
                         </Text>
                     </View>
 
                     <View style={styles.policyItem}>
                         <FileText size={20} color="#2196f3" />
-                        <Text style={styles.policyTitle}>Transparency</Text>
+                        <Text style={styles.policyTitle}>{t('privacyTransparencyTitle')}</Text>
                         <Text style={styles.policyText}>
-                            You can request your data or account deletion at any time through our support channels.
+                            {t('privacyTransparencyText')}
                         </Text>
                     </View>
                 </View>
 
-                <Text style={styles.footerInfo}>Last Updated: February 2026</Text>
+                <Text style={styles.footerInfo}>{t('privacyLastUpdated')}</Text>
             </ScrollView>
         </View>
     );

@@ -5,7 +5,6 @@ import { Mail, Lock, User, Leaf, Phone, Map } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
-import { useLanguage } from '../context/LanguageContext';
 import { T } from '../components/ui/T';
 
 export default function RegisterScreen() {
@@ -17,7 +16,6 @@ export default function RegisterScreen() {
     const { signIn } = useAuth();
     const { t } = useLanguage();
     const router = useRouter();
-    const { t } = useLanguage();
 
     const handleRegister = async () => {
         if (!email || !password || !name) {
