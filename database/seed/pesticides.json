@@ -134,7 +134,7 @@
     {
         "name": "Streptomycin Sulfate",
         "type": "antibiotic/bactericide",
-        "target_diseases": "Bacterial spot, Bacterial leaf blight, Bacterial Blight (Cotton)",
+        "target_diseases": "Bacterial spot, Bacterial leaf blight",
         "dosage_per_acre": "12-15g in 60 liters of water",
         "frequency": "Spray when symptoms appear",
         "cost_per_liter": 1500,

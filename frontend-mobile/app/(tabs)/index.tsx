@@ -20,8 +20,6 @@ const { width } = Dimensions.get('window');
 // Ideally, this list mimics what the backend supports.
 const CROP_OPTIONS = [
   { id: 'tomato', name: 'Tomato', image: require('../../assets/images/tomato.png') },
-  { id: 'cotton', name: 'Cotton', image: require('../../assets/images/cotton.png') },
-  { id: 'wheat', name: 'Wheat', image: require('../../assets/images/wheat.png') },
   { id: 'rice', name: 'Rice', image: require('../../assets/images/rice.png') },
   { id: 'potato', name: 'Potato', image: require('../../assets/images/potato.png') },
   { id: 'grape', name: 'Grape', image: require('../../assets/images/grape.png') },
@@ -330,7 +328,7 @@ export default function DashboardScreen() {
           formData.append('longitude', location.longitude.toString());
         }
 
-        response = await api.post('/diagnosis/detect', formData, {
+        response = await api.post('diagnosis/detect', formData, {
           headers: {
             // Let Axios set the Content-Type with boundary automatically
             // But we explicitly need 'Content-Type': 'multipart/form-data' for some RN versions? 
@@ -678,7 +676,7 @@ export default function DashboardScreen() {
 
                       // 2. If user is logged in, save to backend
                       if (!isGuest && user) {
-                        await api.put('/user/language', { language: lang.code });
+                        await api.put('user/language', { language: lang.code });
                         // 3. Update local user state
                         await updateUser({ preferred_language: lang.code });
                       }

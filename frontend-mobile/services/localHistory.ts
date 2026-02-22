@@ -62,11 +62,11 @@ export const addToLocalHistory = async (diagnosisResult: any, crop: string) => {
 
         const newItem: LocalHistoryItem = {
             id: Date.now(),
-            crop: crop,
-            disease: diagnosisResult.prediction.disease,
+            crop: diagnosisResult.prediction.crop_local || crop,
+            disease: diagnosisResult.prediction.disease_local || diagnosisResult.prediction.disease,
             confidence: diagnosisResult.prediction.confidence,
             severity_percent: diagnosisResult.prediction.severity_percent,
-            stage: diagnosisResult.prediction.stage,
+            stage: diagnosisResult.prediction.stage_local || diagnosisResult.prediction.stage,
             created_at: new Date().toISOString(),
             fullData: diagnosisResult
         };

@@ -25,7 +25,6 @@ base_translations = load_base_translations()
 
 def translate_text(text: str, target_language: str = 'en', source_language: str = 'en') -> str:
     """
-    """
     Translate text to target language using Google Translate (deep-translator)
     
     Args:
@@ -54,13 +53,12 @@ def translate_text(text: str, target_language: str = 'en', source_language: str 
             
         translated_texts = translator.translate_batch(texts)
         
-        # Ask Google to translate it using deep-translator
-        translated_text = GoogleTranslator(source=source_language, target=target_language).translate(text)
-        
-        
+        if not translated_text:
+             print(f"DEBUG: Translation returned empty for '{text}' to {target_language}")
+             return text
+
         # Remember it for next time
         translation_cache[cache_key] = translated_text
-        
         return translated_text
     except Exception as e:
         print(f"Translation error: {e}")
@@ -164,9 +162,10 @@ def translate_diagnosis_result(result, target_language):
         # Pre-defined names are often better than machine translation for simple words
         crop_names = {
             'tomato': {'hi': 'टमाटर', 'te': 'టమాటా', 'ta': 'தக்காளி', 'kn': 'ಟೊಮೇಟೊ', 'mr': 'टोमॅटो'},
-            'rice': {'hi': 'चावल', 'te': 'వరి', 'ta': 'அரிசி', 'kn': 'ಅಕ್ಕಿ', 'mr': 'तांदूळ'},
-            'wheat': {'hi': 'गेहूं', 'te': 'గోధుమ', 'ta': 'கோதுமை', 'kn': 'ಗೋಧಿ', 'mr': 'गहू'},
-            'cotton': {'hi': 'कपास', 'te': 'పత్తి', 'ta': 'பருத்தி', 'kn': 'ಹತ್ತಿ', 'mr': 'कापूस'}
+            'rice': {'hi': 'चावल', 'te': 'వరి', 'ta': 'அரிசி', 'kn': 'ಅಕ್ಕಿ', 'mr': 'ताಂದೂಳು'},
+            'potato': {'hi': 'आलू', 'te': 'బంగాళాదుంప', 'ta': 'உருளைக்கிழங்கு', 'kn': 'ಆಲೂಗಡ್ಡೆ', 'mr': 'बटाटा'},
+            'grape': {'hi': 'अंगूर', 'te': 'ద్రాక్ష', 'ta': 'திராட்சை', 'kn': 'ದ್ರಾಕ್ಷಿ', 'mr': 'द्राक्ष'},
+            'maize': {'hi': 'मक्का', 'te': 'మొక్కజొన్న', 'ta': 'மக்காச்சோளம்', 'kn': 'ಮೆಕ್ಕೆಜೋಳ', 'mr': 'मका'},
         }
         crop = result['crop'].lower()
         if crop in crop_names and target_language in crop_names[crop]:
@@ -257,7 +256,7 @@ UI_LABELS_ENGLISH = {
     "potential_disease": "Potential Disease Detected",
     "voice_explanation": "Voice Explanation",
     "pause_explanation": "Pause Explanation",
-    "share_report": "Share Report",
+    "share_report": "Download Report",
     "weather_advice": "Weather-Based Advice",
     "disease_info": "Disease Information",
     "symptoms": "Symptoms",

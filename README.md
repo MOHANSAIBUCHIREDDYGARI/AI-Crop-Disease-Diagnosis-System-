@@ -21,6 +21,7 @@ A comprehensive, farmer-friendly mobile and web application for crop disease det
 - Disease severity-based treatment advice
 - Weather-aware prevention tips
 - Warnings for harmful pesticide combinations
+**Smart Crop Health System** allows farmers to quickly detect diseases in crops like Grape, Maize, Potato, Rice, and Tomato using deep learning models via a mobile app and web API.
 
 ### 💰 Cost Calculation (Epic 3)
 - Input land area for accurate cost estimation

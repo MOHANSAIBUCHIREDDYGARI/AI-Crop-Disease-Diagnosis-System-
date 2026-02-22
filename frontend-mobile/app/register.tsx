@@ -28,7 +28,7 @@ export default function RegisterScreen() {
         setLoading(true);
         try {
             // Create a new account on the server
-            const response = await api.post('/user/register', {
+            const response = await api.post('user/register', {
                 email,
                 password,
                 name,

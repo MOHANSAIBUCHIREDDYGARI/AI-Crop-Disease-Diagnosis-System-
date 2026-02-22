@@ -66,7 +66,7 @@ def file_too_large(error):
 def health_check():
     return jsonify({
         'status': 'healthy',
-        'service': 'AI Crop Diagnosis API',
+        'service': 'Smart Crop Health API',
         'version': '1.0.0'
     }), 200
 
@@ -75,7 +75,7 @@ def health_check():
 @app.route('/api', methods=['GET'])
 def api_info():
     return jsonify({
-        'service': 'AI Crop Diagnosis API',
+        'service': 'Smart Crop Health API',
         'version': '1.0.0',
         'endpoints': {
             'user': {
@@ -125,7 +125,7 @@ def index():
 if __name__ == '__main__':
     # Print some friendly startup messages
     print("=" * 60)
-    print("🌾 AI CROP DIAGNOSIS API SERVER")
+    print("🌾 SMART CROP HEALTH API SERVER")
     print("=" * 60)
     print(f"Server starting on http://{settings.HOST}:{settings.PORT}")
     print(f"Debug mode: {settings.DEBUG}")

@@ -27,7 +27,7 @@ export default function LoginScreen() {
 
         setLoading(true);
         try {
-            const response = await api.post('/user/login', { email, password });
+            const response = await api.post('user/login', { email, password });
             await signIn(response.data.token, response.data.user);
             router.replace('/(tabs)');
         } catch (error: any) {

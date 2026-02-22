@@ -67,7 +67,7 @@ def validate_land_area(area: float) -> Dict[str, Any]:
 
 def validate_crop_type(crop: str) -> bool:
     """Validate if crop type is supported"""
-    supported_crops = ['tomato', 'rice', 'wheat', 'cotton']
+    supported_crops = ['tomato', 'rice', 'grape', 'maize', 'potato']
     return crop.lower() in supported_crops
 
 def validate_language(language: str) -> bool:
@@ -188,7 +188,7 @@ def validate_diagnosis_request(data: Dict[str, Any]) -> Dict[str, Any]:
     if 'crop' not in data or not data['crop']:
         errors.append('Crop type is required')
     elif not validate_crop_type(data['crop']):
-        errors.append('Unsupported crop type. Supported: tomato, rice, wheat, cotton')
+        errors.append('Unsupported crop type. Supported: tomato, rice, grape, maize, potato')
     
     
     if 'image' not in data or not data['image']:

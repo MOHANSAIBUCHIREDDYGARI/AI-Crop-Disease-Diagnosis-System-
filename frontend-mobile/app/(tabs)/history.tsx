@@ -20,7 +20,7 @@ interface HistoryItem {
     fullData?: any;
 }
 export default function HistoryScreen() {
-    const [history, setHistory] = useState([]);
+    const [history, setHistory] = useState<HistoryItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const { user, isGuest } = useAuth();
@@ -43,7 +43,7 @@ export default function HistoryScreen() {
                 setHistory(localData);
             } else if (user) {
                 // Logged-in users pull from the server
-                const response = await api.get('/diagnosis/history');
+                const response = await api.get('diagnosis/history');
                 setHistory(response.data.history || []);
             }
         } catch (error) {
@@ -73,7 +73,7 @@ export default function HistoryScreen() {
 
         setLoading(true);
         try {
-            const response = await api.get(`/diagnosis/${id}`);
+            const response = await api.get(`diagnosis/${id}`);
             router.push({
                 pathname: '/results',
                 params: { data: JSON.stringify(response.data) }
