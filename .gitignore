@@ -79,3 +79,8 @@ dataset/
 *.tmp
 *.bak
 *.swp
+
+# Uploads and voice outputs
+backend/uploads/
+backend/voice_outputs/
+

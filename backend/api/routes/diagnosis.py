@@ -3,6 +3,7 @@ import os
 import sys
 from werkzeug.utils import secure_filename
 import datetime
+from bson.objectid import ObjectId
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -47,16 +48,18 @@ def detect_disease():
             
             if token_data['valid']:
                 user_id = token_data['user_id']
-                # Get user's preferred language
-                user = db.execute_query('SELECT preferred_language FROM users WHERE id = ?', (user_id,))
+                
+                # Use their preferred language if found
+                users_collection = db.get_collection('users')
+                user = users_collection.find_one({'_id': ObjectId(user_id)})
                 if user:
-                    language = user[0]['preferred_language']
+                    language = user.get('preferred_language', 'en')
         
-        # Check if language is provided in form data (overrides profile)
-        form_language = request.form.get('language')
-        if form_language:
-             print(f"DEBUG: Using language from form: {form_language}")
-             language = form_language
+        
+        # If the app explicitly sets a language (e.g., user switched it temporarily), use that
+        if 'language' in request.form and request.form['language']:
+            language = request.form['language']
+        
         
         # Check if image file is present
         if 'image' not in request.files:
@@ -114,33 +117,91 @@ def detect_disease():
         print(f"DEBUG: Starting disease prediction for crop: {crop}")
         prediction_result = full_prediction(filepath, crop)
         print(f"DEBUG: Prediction result: {prediction_result}")
+
         
-        # Get disease information from database
-        disease_info = db.execute_query(
-            'SELECT * FROM diseases WHERE crop = ? AND disease_name = ?',
-            (crop, prediction_result['disease'])
-        )
+        # (Optional code block for confidence thresholds was skipped here for now)
+        if False: 
+            pass # Placeholder
         
+        
+        # --- GATHER INFORMATION ---
+        # 1. Get detailed info about the disease from our database
+
+        diseases_collection = db.get_collection('diseases')
         disease_data = {}
-        if disease_info:
-            disease_data = {
-                'description': disease_info[0]['description'],
-                'symptoms': disease_info[0]['symptoms'],
-                'prevention_steps': disease_info[0]['prevention_steps']
-            }
-            # Clean disease name for better translation
-            cleaned_disease_name = prediction_result['disease'].replace('___', ': ').replace('_', ' ')
-            # Translate disease info
-            disease_data = translate_disease_info(disease_data, language)
+        try:
+            # Try exact match first
+            
+            # MongoDB Find
+            disease_info = diseases_collection.find_one({'crop': crop, 'disease_name': prediction_result['disease']})
+            
+            if not disease_info:
+                # Try with crop prefix and triple underscores (e.g., "Tomato___Target_Spot")
+                disease_with_prefix = f"{crop.capitalize()}___{prediction_result['disease'].replace(' ', '_')}"
+                disease_info = diseases_collection.find_one({'crop': crop, 'disease_name': disease_with_prefix})
+            
+            if not disease_info:
+                # Try without crop prefix but with underscores
+                disease_info = diseases_collection.find_one({'crop': crop, 'disease_name': prediction_result['disease'].replace(' ', '_')})
+
+            if not disease_info:
+                # Fallback: Case-insensitive search 
+                # Note: Regex queries can be slow, but this is a fallback
+                import re
+                disease_info = diseases_collection.find_one({
+                    'crop': crop, 
+                    'disease_name': re.compile(f"^{re.escape(prediction_result['disease'])}$", re.IGNORECASE)
+                })
+                
+            if disease_info:
+                disease_data = {
+                    'description': disease_info.get('description'),
+                    'symptoms': disease_info.get('symptoms'),
+                    'prevention_steps': disease_info.get('prevention_steps')
+                }
+                
+                # Translate it
+                disease_data = translate_disease_info(disease_data, language)
+        except Exception as e:
+            print(f"DEBUG: Error getting disease info: {e}")
+            disease_data = {}
+            
+        # DEBUG: Check what we are looking for
+        print(f"DEBUG: Looking for disease: '{prediction_result['disease']}' in crop: '{crop}'")
+        print(f"DEBUG: Disease info found: {disease_data}")
         
-        # Get pesticide recommendations
-        pesticide_recommendations = get_severity_based_recommendations(
-            prediction_result['disease'],
-            prediction_result['severity_percent'],
-            crop
-        )
         
-        # Get weather-based advice if coordinates provided
+        # 2. Get pesticide recommendations based on severity
+        pesticide_recommendations = {}
+        try:
+            pesticide_recommendations = get_severity_based_recommendations(
+                prediction_result['disease'],
+                prediction_result['severity_percent'],
+                crop
+            )
+            
+            # Translate recommendations if needed
+            if language != 'en' and pesticide_recommendations:
+                if 'treatment_approach' in pesticide_recommendations:
+                    pesticide_recommendations['treatment_approach'] = translate_text(
+                        pesticide_recommendations['treatment_approach'], language
+                    )
+                if 'application_note' in pesticide_recommendations:
+                    pesticide_recommendations['application_note'] = translate_text(
+                        pesticide_recommendations['application_note'], language
+                    )
+                
+                new_pests = []
+                for pest in pesticide_recommendations.get('recommended_pesticides', []):
+                    new_pests.append(translate_pesticide_info(pest, language))
+                pesticide_recommendations['recommended_pesticides'] = new_pests
+
+        except Exception as e:
+            print(f"DEBUG: Error getting pesticide recommendations: {e}")
+            pesticide_recommendations = {'recommended_pesticides': []}
+        
+        
+        # 3. Get weather advice if we have location
         weather_advice = None
         if latitude and longitude:
             weather_data = get_weather_data(latitude, longitude)
@@ -149,52 +210,43 @@ def detect_disease():
         
         # Save diagnosis to history (only if user is logged in)
         diagnosis_id = None
-        if user_id:
-            diagnosis_id = db.execute_insert(
-                '''INSERT INTO diagnosis_history 
-                   (user_id, crop, disease, confidence, severity_percent, stage, image_path, latitude, longitude)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                (
-                    user_id,
-                    crop,
-                    prediction_result['disease'],
-                    prediction_result['confidence'],
-                    prediction_result['severity_percent'],
-                    prediction_result['stage'],
-                    filepath,
-                    latitude,
-                    longitude
-                )
-            )
-            
-            # Save pesticide recommendations (only if user is logged in)
-            for pesticide in pesticide_recommendations.get('recommended_pesticides', [])[:3]:
-                db.execute_insert(
-                    '''INSERT INTO pesticide_recommendations 
-                       (diagnosis_id, pesticide_name, dosage, frequency, cost_per_unit, is_organic, warnings)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                    (
-                        diagnosis_id,
-                        pesticide['name'],
-                        pesticide['dosage_per_acre'],
-                        pesticide['frequency'],
-                        pesticide['cost_per_liter'],
-                        pesticide['is_organic'],
-                        pesticide['warnings']
-                    )
-                )
+        try:
+            if user_id:
+                diagnosis_collection = db.get_collection('diagnosis_history')
+                
+                diagnosis_doc = {
+                    'user_id': user_id, # Keep as string for now, or match User ID type
+                    'crop': crop,
+                    'disease': prediction_result['disease'],
+                    'confidence': prediction_result['confidence'],
+                    'severity_percent': prediction_result['severity_percent'],
+                    'stage': prediction_result['stage'],
+                    'image_path': filepath,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'created_at': datetime.datetime.utcnow(),
+                    
+                    # Store pesticides in the same document (NoSQL Advantage!)
+                    'pesticide_recommendations': pesticide_recommendations.get('recommended_pesticides', [])[:3] 
+                }
+                
+                result = diagnosis_collection.insert_one(diagnosis_doc)
+                diagnosis_id = str(result.inserted_id)
+                
+        except Exception as e:
+            print(f"DEBUG: Error saving to history: {e}")
+            diagnosis_id = None
         
-        # Prepare result for translation and response
-        # We use a copy for the response so we don't mess up the DB record logic if it were used later
-        response_prediction = prediction_result.copy()
         
-        # Prettify disease name
-        response_prediction['disease'] = response_prediction['disease'].replace('___', ': ').replace('_', ' ')
+        # Translate the prediction labels (like "Healthy" or "Early Blight")
+        translated_result = translate_diagnosis_result(prediction_result, language)
         
-        # Translate result
-        translated_result = translate_diagnosis_result(response_prediction, language)
         
-        # Generate voice output
+        # Get UI text (buttons, labels)
+        ui_labels = get_translated_ui_labels(language)
+        
+        
+        # Generate an audio file reading out the result
         voice_file = generate_diagnosis_voice(translated_result, language)
         
         # Prepare response
@@ -206,7 +258,14 @@ def detect_disease():
             'weather_advice': weather_advice,
             'voice_file': f'/api/diagnosis/voice/{os.path.basename(voice_file)}' if voice_file else None,
             'image_quality': quality_result,
-            'language': language
+            'quality_warning': quality_warning,  
+            'language': language,
+            'ui_translations': ui_labels,
+            'debug': {
+                'disease_queried': prediction_result['disease'],
+                'crop_queried': crop,
+                'disease_info_found': bool(disease_data)
+            }
         }
         
         return jsonify(response), 200
@@ -234,21 +293,29 @@ def get_history():
         # Get pagination parameters
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
-        offset = (page - 1) * per_page
+        skip = (page - 1) * per_page
         
-        # Get history
-        history = db.execute_query(
-            '''SELECT * FROM diagnosis_history 
-               WHERE user_id = ? 
-               ORDER BY created_at DESC 
-               LIMIT ? OFFSET ?''',
-            (user_id, per_page, offset)
-        )
+        diagnosis_collection = db.get_collection('diagnosis_history')
         
+        # Fetch records from the database
+        cursor = diagnosis_collection.find({'user_id': user_id})\
+            .sort('created_at', -1)\
+            .skip(skip)\
+            .limit(per_page)
+            
+        history = list(cursor)
+
+        
+        language = 'en'
+        users_collection = db.get_collection('users')
+        user = users_collection.find_one({'_id': ObjectId(user_id)})
+        if user:
+            language = user.get('preferred_language', 'en')
+
         history_list = []
         for record in history:
-            history_list.append({
-                'id': record['id'],
+            item = {
+                'id': str(record['_id']),
                 'crop': record['crop'],
                 'disease': record['disease'],
                 'confidence': record['confidence'],
@@ -262,7 +329,7 @@ def get_history():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@diagnosis_bp.route('/<int:diagnosis_id>', methods=['GET'])
+@diagnosis_bp.route('/<diagnosis_id>', methods=['GET'])
 def get_diagnosis_details(diagnosis_id):
     """Get detailed diagnosis information"""
     try:
@@ -279,61 +346,94 @@ def get_diagnosis_details(diagnosis_id):
         
         user_id = token_data['user_id']
         
-        # Get diagnosis
-        diagnosis = db.execute_query(
-            'SELECT * FROM diagnosis_history WHERE id = ? AND user_id = ?',
-            (diagnosis_id, user_id)
-        )
+        diagnosis_collection = db.get_collection('diagnosis_history')
+        
+        try:
+            oid = ObjectId(diagnosis_id)
+        except:
+             return jsonify({'error': 'Invalid ID format'}), 400
+
+        diagnosis = diagnosis_collection.find_one({'_id': oid, 'user_id': user_id})
         
         if not diagnosis:
             return jsonify({'error': 'Diagnosis not found'}), 404
         
-        diagnosis = diagnosis[0]
         
-        # Get pesticide recommendations
-        pesticides = db.execute_query(
-            'SELECT * FROM pesticide_recommendations WHERE diagnosis_id = ?',
-            (diagnosis_id,)
-        )
+        # Fetch the pesticides (Stored inside the document now!)
+        pesticides = diagnosis.get('pesticide_recommendations', [])
         
         pesticide_list = []
         for p in pesticides:
-            pesticide_list.append({
-                'name': p['pesticide_name'],
-                'dosage': p['dosage'],
-                'frequency': p['frequency'],
-                'cost_per_unit': p['cost_per_unit'],
-                'is_organic': bool(p['is_organic']),
-                'warnings': p['warnings']
-            })
+            # Handle both old SQL style (if we migrated data) or new embedded style
+            # Here we assume new embedded style which is a dict
+            if isinstance(p, dict):
+                pesticide_list.append({
+                    'name': p.get('name') or p.get('pesticide_name'),
+                    'dosage': p.get('dosage_per_acre') or p.get('dosage'),
+                    'frequency': p.get('frequency'),
+                    'cost_per_unit': p.get('cost_per_liter') or p.get('cost_per_unit'),
+                    'is_organic': p.get('is_organic'),
+                    'warnings': p.get('warnings')
+                })
         
-        # Get cost calculation if exists
-        cost_data = db.execute_query(
-            'SELECT * FROM cost_calculations WHERE diagnosis_id = ?',
-            (diagnosis_id,)
-        )
+        
+        # Fetch the disease info
+        diseases_collection = db.get_collection('diseases')
+        disease_data = {}
+        try:
+            disease_info = diseases_collection.find_one({'crop': diagnosis['crop'], 'disease_name': diagnosis['disease']})
+            if not disease_info:
+                disease_with_prefix = f"{diagnosis['crop'].capitalize()}___{diagnosis['disease'].replace(' ', '_')}"
+                disease_info = diseases_collection.find_one({'crop': diagnosis['crop'], 'disease_name': disease_with_prefix})
+            if not disease_info:
+                disease_info = diseases_collection.find_one({'crop': diagnosis['crop'], 'disease_name': diagnosis['disease'].replace(' ', '_')})
+            if disease_info:
+                disease_data = {
+                    'description': disease_info.get('description', ''),
+                    'symptoms': disease_info.get('symptoms', ''),
+                    'prevention_steps': disease_info.get('prevention_steps', ''),
+                    'organic_alternatives': disease_info.get('organic_alternatives', '')
+                }
+                
+                # Fetch user language preference and translate
+                users_collection = db.get_collection('users')
+                user = users_collection.find_one({'_id': ObjectId(user_id)})
+                language = user.get('preferred_language', 'en') if user else 'en'
+                disease_data = translate_disease_info(disease_data, language)
+            else:
+                language = 'en'
+        except Exception as e:
+            print(f"Error fetching disease info in history: {e}")
+            language = 'en'
+
+        cost_collection = db.get_collection('cost_calculations')
+        cost_data = cost_collection.find_one({'diagnosis_id': str(diagnosis['_id'])})
         
         cost_info = None
         if cost_data:
             cost_info = {
-                'land_area': cost_data[0]['land_area'],
-                'treatment_cost': cost_data[0]['treatment_cost'],
-                'prevention_cost': cost_data[0]['prevention_cost'],
-                'total_cost': cost_data[0]['total_cost']
+                'land_area': cost_data.get('land_area'),
+                'treatment_cost': cost_data.get('treatment_cost'),
+                'prevention_cost': cost_data.get('prevention_cost'),
+                'total_cost': cost_data.get('total_cost')
             }
-        
+
         response = {
-            'diagnosis': {
-                'id': diagnosis['id'],
+            'diagnosis_id': str(diagnosis['_id']),
+            'prediction': {
                 'crop': diagnosis['crop'],
                 'disease': diagnosis['disease'],
                 'confidence': diagnosis['confidence'],
-                'severity_percent': diagnosis['severity_percent'],
-                'stage': diagnosis['stage'],
-                'created_at': diagnosis['created_at']
+                'severity_percent': diagnosis.get('severity_percent', 0),
+                'stage': diagnosis.get('stage', '')
             },
-            'pesticides': pesticide_list,
-            'cost': cost_info
+            'disease_info': disease_data,
+            'pesticide_recommendations': {
+                'recommended_pesticides': pesticide_list
+            },
+            'weather_advice': None,  # Not stored in history currently
+            'cost': cost_info,
+            'language': language
         }
         
         return jsonify(response), 200

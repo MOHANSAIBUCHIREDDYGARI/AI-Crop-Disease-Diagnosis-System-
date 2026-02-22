@@ -4,6 +4,7 @@ import { StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
+// A simple modal overlay, often used for temporary info or confirmations
 export default function ModalScreen() {
   return (
     <ThemedView style={styles.container}>

@@ -13,19 +13,19 @@ def preprocess_image(image_path: str, target_size: tuple = (224, 224)) -> np.nda
     Returns:
         Preprocessed image array ready for prediction
     """
-    # Read image
+    
     img = cv2.imread(image_path)
     
-    # Convert BGR to RGB
+    
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     
-    # Apply automatic white balance for different lighting conditions
+    
     img = auto_white_balance(img)
     
-    # Center crop preprocessing (preserves aspect ratio without padding)
+    
     h, w = img.shape[:2]
     
-    # Resize so smaller dimension = target_size
+    
     if h < w:
         new_h = target_size[1]
         new_w = int(w * (target_size[1] / h))
@@ -35,17 +35,17 @@ def preprocess_image(image_path: str, target_size: tuple = (224, 224)) -> np.nda
     
     img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
     
-    # Center crop to target_size
+    
     h, w = img.shape[:2]
     start_y = (h - target_size[1]) // 2
     start_x = (w - target_size[0]) // 2
     img = img[start_y:start_y+target_size[1], start_x:start_x+target_size[0]]
     
-    # Convert to array and normalize
-    img_array = np.array(img, dtype=np.float32)
-    img_array = img_array / 255.0  # Normalize to [0, 1]
     
-    # Add batch dimension
+    img_array = np.array(img, dtype=np.float32)
+    img_array = img_array / 255.0  
+    
+    
     img_array = np.expand_dims(img_array, axis=0)
     
     return img_array
@@ -60,20 +60,20 @@ def auto_white_balance(img: np.ndarray) -> np.ndarray:
     Returns:
         White-balanced image
     """
-    # Calculate average values for each channel
+    
     avg_b = np.mean(img[:, :, 0])
     avg_g = np.mean(img[:, :, 1])
     avg_r = np.mean(img[:, :, 2])
     
-    # Calculate gray world assumption
+    
     avg_gray = (avg_b + avg_g + avg_r) / 3
     
-    # Calculate scaling factors
+    
     scale_b = avg_gray / avg_b if avg_b > 0 else 1.0
     scale_g = avg_gray / avg_g if avg_g > 0 else 1.0
     scale_r = avg_gray / avg_r if avg_r > 0 else 1.0
     
-    # Apply scaling
+    
     balanced = img.copy().astype(np.float32)
     balanced[:, :, 0] = np.clip(balanced[:, :, 0] * scale_b, 0, 255)
     balanced[:, :, 1] = np.clip(balanced[:, :, 1] * scale_g, 0, 255)
@@ -93,7 +93,7 @@ def adjust_brightness_contrast(img: np.ndarray, brightness: int = 0, contrast: i
     Returns:
         Adjusted image
     """
-    # Adjust brightness
+    
     if brightness != 0:
         if brightness > 0:
             shadow = brightness
@@ -105,7 +105,7 @@ def adjust_brightness_contrast(img: np.ndarray, brightness: int = 0, contrast: i
         gamma_b = shadow
         img = cv2.addWeighted(img, alpha_b, img, 0, gamma_b)
     
-    # Adjust contrast
+    
     if contrast != 0:
         alpha_c = 131 * (contrast + 127) / (127 * (131 - contrast))
         gamma_c = 127 * (1 - alpha_c)
@@ -123,25 +123,25 @@ def remove_background(img: np.ndarray) -> np.ndarray:
     Returns:
         Image with background removed
     """
-    # Convert to HSV for better plant detection
+    
     hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
     
-    # Define range for green colors (plants)
+    
     lower_green = np.array([25, 40, 40])
     upper_green = np.array([90, 255, 255])
     
-    # Create mask
+    
     mask = cv2.inRange(hsv, lower_green, upper_green)
     
-    # Apply morphological operations to clean up mask
+    
     kernel = np.ones((5, 5), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     
-    # Apply mask to original image
+    
     result = cv2.bitwise_and(img, img, mask=mask)
     
-    # Replace background with white
+    
     background = np.ones_like(img) * 255
     background[mask > 0] = result[mask > 0]
     
@@ -159,14 +159,14 @@ def augment_image(img: np.ndarray, rotation: int = 0, flip: bool = False) -> np.
     Returns:
         Augmented image
     """
-    # Rotate image
+    
     if rotation != 0:
         height, width = img.shape[:2]
         center = (width // 2, height // 2)
         matrix = cv2.getRotationMatrix2D(center, rotation, 1.0)
         img = cv2.warpAffine(img, matrix, (width, height))
     
-    # Flip image
+    
     if flip:
         img = cv2.flip(img, 1)
     
@@ -182,14 +182,14 @@ def preprocess_for_severity(image_path: str) -> np.ndarray:
     Returns:
         Preprocessed image for severity analysis
     """
-    # Read image
+    
     img = cv2.imread(image_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     
-    # Resize to standard size
+    
     img = cv2.resize(img, (224, 224))
     
-    # Convert to HSV for better disease spot detection
+    
     hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
     
     return hsv

@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, RefreshControl } from 'react-native';
-import { useRouter, useNavigation } from 'expo-router';
+import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Calendar, ChevronRight, Search, Filter, History as HistoryIcon, LogIn } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import api from '../../services/api';
 
+import api from '../../services/api';
+import { getLocalHistory } from '../../services/localHistory';
+
+interface HistoryItem {
+    id: string | number;
+    crop: string;
+    disease: string;
+    confidence: number;
+    created_at: string;
+    severity_percent?: number;
+    stage?: string;
+    fullData?: any;
+}
 export default function HistoryScreen() {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -14,17 +27,25 @@ export default function HistoryScreen() {
     const { t } = useLanguage();
     const router = useRouter();
 
-    useEffect(() => {
-        if (!isGuest && user) {
+    // Reload history whenever this screen is looked at
+    useFocusEffect(
+        useCallback(() => {
             fetchHistory();
-        }
-    }, [user, isGuest]);
+        }, [user, isGuest])
+    );
 
     const fetchHistory = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/diagnosis/history');
-            setHistory(response.data);
+            if (isGuest) {
+                // Guests see history from their local device storage
+                const localData = await getLocalHistory();
+                setHistory(localData);
+            } else if (user) {
+                // Logged-in users pull from the server
+                const response = await api.get('/diagnosis/history');
+                setHistory(response.data.history || []);
+            }
         } catch (error) {
             console.error('Failed to fetch history', error);
         } finally {
@@ -37,7 +58,19 @@ export default function HistoryScreen() {
         fetchHistory().then(() => setRefreshing(false));
     }, []);
 
-    const handleItemPress = async (id: number) => {
+    const handleItemPress = async (id: string | number) => {
+        if (isGuest) {
+            // For guests, we pass the saved data directly
+            const item = history.find((h) => h.id === id);
+            if (item && item.fullData) {
+                router.push({
+                    pathname: '/results',
+                    params: { data: JSON.stringify(item.fullData) }
+                });
+            }
+            return;
+        }
+
         setLoading(true);
         try {
             const response = await api.get(`/diagnosis/${id}`);
@@ -52,23 +85,7 @@ export default function HistoryScreen() {
         }
     };
 
-    if (isGuest) {
-        return (
-            <View style={styles.guestContainer}>
-                <View style={styles.guestContent}>
-                    <View style={styles.guestIconCircle}>
-                        <HistoryIcon size={48} color="#4caf50" />
-                    </View>
-                    <Text style={styles.guestTitle}>{t('saveYourHistory')}</Text>
-                    <Text style={styles.guestSubtitle}>{t('guestHistorySubtitle')}</Text>
-                    <TouchableOpacity style={styles.loginButton} onPress={() => router.replace('/login')}>
-                        <LogIn color="#fff" size={20} style={{ marginRight: 8 }} />
-                        <Text style={styles.loginButtonText}>{t('loginRegister')}</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    }
+
 
     const renderItem = ({ item }: any) => (
         <TouchableOpacity style={styles.historyCard} onPress={() => handleItemPress(item.id)}>
@@ -98,7 +115,7 @@ export default function HistoryScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Diagnosis History</Text>
+                <Text style={styles.title}>{t('diagnosis_history_title')}</Text>
                 <TouchableOpacity style={styles.searchButton}>
                     <Search size={22} color="#333" />
                 </TouchableOpacity>
@@ -121,10 +138,10 @@ export default function HistoryScreen() {
             ) : (
                 <View style={styles.emptyContainer}>
                     <HistoryIcon size={64} color="#eee" />
-                    <Text style={styles.emptyText}>No diagnoses yet</Text>
-                    <Text style={styles.emptySubtext}>Your past crop diagnoses will appear here.</Text>
+                    <Text style={styles.emptyText}>{t('no_diagnoses_found')}</Text>
+                    <Text style={styles.emptySubtext}>{t('history_empty_message')}</Text>
                     <TouchableOpacity style={styles.startButton} onPress={() => router.replace('/(tabs)')}>
-                        <Text style={styles.startButtonText}>Start New Diagnosis</Text>
+                        <Text style={styles.startButtonText}>{t('start_new_diagnosis_btn')}</Text>
                     </TouchableOpacity>
                 </View>
             )}

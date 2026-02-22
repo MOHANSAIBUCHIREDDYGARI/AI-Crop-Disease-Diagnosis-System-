@@ -1,8 +1,8 @@
+
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ShieldCheck, ShieldAlert, BadgeInfo } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
-
 
 interface Pesticide {
     name: string;
@@ -13,8 +13,13 @@ interface Pesticide {
     warnings?: string;
 }
 
+/**
+ * A handy card that displays the details of a recommended medicine.
+ * Shows if it's Organic (Safe) or Chemical (Effective but use with caution).
+ */
 const PesticideCard: React.FC<{ pesticide: Pesticide }> = ({ pesticide }) => {
     const { t } = useLanguage();
+
     return (
         <View style={styles.card}>
             <View style={styles.header}>
@@ -33,18 +38,18 @@ const PesticideCard: React.FC<{ pesticide: Pesticide }> = ({ pesticide }) => {
             </View>
 
             <View style={styles.infoRow}>
-                <Text style={styles.label}>{t('dosage')}</Text>
+                <Text style={styles.label}>{t('dosage')}:</Text>
                 <Text style={styles.value}>{pesticide.dosage_per_acre}</Text>
             </View>
 
             <View style={styles.infoRow}>
-                <Text style={styles.label}>{t('frequency')}</Text>
+                <Text style={styles.label}>{t('frequency')}:</Text>
                 <Text style={styles.value}>{pesticide.frequency}</Text>
             </View>
 
             <View style={styles.infoRow}>
-                <Text style={styles.label}>{t('estPrice')}</Text>
-                <Text style={styles.value}>₹{pesticide.cost_per_liter} {t('perLiter')}</Text>
+                <Text style={styles.label}>{t('estPrice')}:</Text>
+                <Text style={styles.value}>₹{pesticide.cost_per_liter} / L</Text>
             </View>
 
             {pesticide.warnings && (

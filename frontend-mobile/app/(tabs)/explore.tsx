@@ -5,67 +5,64 @@ import { ExternalLink } from '@/components/external-link';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
 import { Collapsible } from '@/components/ui/collapsible';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '@/context/LanguageContext';
-import { Translations } from '@/constants/Translations';
-
-// --- Assets ---
-const CROPS = [
-  { id: 'tomato', image: require('../../assets/images/tomato.png'), color: '#FF6B6B' },
-  { id: 'potato', image: require('../../assets/images/potato.png'), color: '#C9A875' },
-  { id: 'rice', image: require('../../assets/images/rice.png'), color: '#F4E4BA' },
-  { id: 'wheat', image: require('../../assets/images/wheat.png'), color: '#E8C468' },
-  { id: 'cotton', image: require('../../assets/images/cotton.png'), color: '#F0F0F0' },
-  { id: 'grape', image: require('../../assets/images/grape.png'), color: '#8B5FBF' },
-  { id: 'corn', image: require('../../assets/images/corn.png'), color: '#FFD93D' },
-];
 
 interface DiseaseData {
-  nameKey: keyof typeof Translations['en'];
-  descKey: keyof typeof Translations['en'];
-  icon: string;
+  name: string;
+  desc: string;
+  icon: IconSymbolName;
   gradient: [string, string, ...string[]];
   textColor: string;
 }
 
-const DISEASE_KEYS: DiseaseData[] = [
-  {
-    nameKey: 'earlyBlightName',
-    descKey: 'earlyBlightDesc',
-    icon: 'blur-circular',
-    gradient: ['#FFF9C4', '#FFF59D'],
-    textColor: '#F57F17',
-  },
-  {
-    nameKey: 'lateBlightName',
-    descKey: 'lateBlightDesc',
-    icon: 'water-drop',
-    gradient: ['#FFCDD2', '#EF9A9A'],
-    textColor: '#C62828',
-  },
-  {
-    nameKey: 'leafMoldName',
-    descKey: 'leafMoldDesc',
-    icon: 'opacity',
-    gradient: ['#B2DFDB', '#80CBC4'],
-    textColor: '#00695C',
-  },
-  {
-    nameKey: 'rustName',
-    descKey: 'rustDesc',
-    icon: 'warning',
-    gradient: ['#F8BBD0', '#F48FB1'],
-    textColor: '#AD1457',
-  },
-];
-
 export default function ExploreScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+
+  const CROPS = [
+    { id: 'tomato', name: t('crop_tomato'), image: require('../../assets/images/tomato.png'), color: '#FF6B6B' },
+    { id: 'potato', name: t('crop_potato'), image: require('../../assets/images/potato.png'), color: '#C9A875' },
+    { id: 'rice', name: t('crop_rice'), image: require('../../assets/images/rice.png'), color: '#F4E4BA' },
+    { id: 'wheat', name: t('crop_wheat'), image: require('../../assets/images/wheat.png'), color: '#E8C468' },
+    { id: 'cotton', name: t('crop_cotton'), image: require('../../assets/images/cotton.png'), color: '#F0F0F0' },
+    { id: 'grape', name: t('crop_grape'), image: require('../../assets/images/grape.png'), color: '#8B5FBF' },
+    { id: 'maize', name: t('crop_maize'), image: require('../../assets/images/maize.png'), color: '#FFD93D' },
+  ];
+
+  const DISEASES: DiseaseData[] = [
+    {
+      name: t('diseaseEarlyBlight'),
+      desc: t('diseaseEarlyBlightDesc'),
+      icon: 'circle.circle.fill',
+      gradient: ['#FFF9C4', '#FFF59D'],
+      textColor: '#F57F17',
+    },
+    {
+      name: t('diseaseLateBlight'),
+      desc: t('diseaseLateBlightDesc'),
+      icon: 'drop.triangle.fill',
+      gradient: ['#FFCDD2', '#EF9A9A'],
+      textColor: '#C62828',
+    },
+    {
+      name: t('diseaseLeafMold'),
+      desc: t('diseaseLeafMoldDesc'),
+      icon: 'humidity.fill',
+      gradient: ['#B2DFDB', '#80CBC4'],
+      textColor: '#00695C',
+    },
+    {
+      name: t('diseaseRust'),
+      desc: t('diseaseRustDesc'),
+      icon: 'allergens',
+      gradient: ['#F8BBD0', '#F48FB1'],
+      textColor: '#AD1457',
+    },
+  ];
 
   return (
     <ParallaxScrollView
@@ -73,7 +70,7 @@ export default function ExploreScreen() {
       contentContainerStyle={{ backgroundColor: '#1B5E20' }}
       headerImage={
         <Image
-          source={require('@/assets/images/logo.png')}
+          source={require('@/assets/images/logo.jpeg')}
           style={styles.headerImage}
           contentFit="contain"
         />
@@ -98,8 +95,8 @@ export default function ExploreScreen() {
             <IconSymbol name="leaf.fill" size={22} color="#FFF" />
           </View>
           <View style={{ flex: 1 }}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>{t('cropsDiagnoseTitle')}</ThemedText>
-            <ThemedText style={styles.sectionSubtext}>{t('cropsDiagnoseSubtitle')}</ThemedText>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>{t('cropsTitle')}</ThemedText>
+            <ThemedText style={styles.sectionSubtext}>{t('cropsSubtitle')}</ThemedText>
           </View>
         </View>
 
@@ -119,7 +116,7 @@ export default function ExploreScreen() {
               <View style={[styles.cropImageContainer, { backgroundColor: crop.color + '20' }]}>
                 <Image source={crop.image} style={styles.cropImage} contentFit="contain" />
               </View>
-              <ThemedText type="defaultSemiBold" style={styles.cropName}>{t(`crop_${crop.id}` as any)}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.cropName}>{crop.name}</ThemedText>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -132,13 +129,13 @@ export default function ExploreScreen() {
             <IconSymbol name="exclamationmark.triangle.fill" size={22} color="#FFF" />
           </View>
           <View style={{ flex: 1 }}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>{t('commonThreatsTitle')}</ThemedText>
-            <ThemedText style={styles.sectionSubtext}>{t('commonThreatsSubtitle')}</ThemedText>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>{t('threatsTitle')}</ThemedText>
+            <ThemedText style={styles.sectionSubtext}>{t('threatsSubtitle')}</ThemedText>
           </View>
         </View>
 
         <View style={styles.diseaseGrid}>
-          {DISEASE_KEYS.map((disease, index) => (
+          {DISEASES.map((disease, index) => (
             <TouchableOpacity
               key={index}
               style={styles.diseaseCard}
@@ -152,13 +149,13 @@ export default function ExploreScreen() {
               >
                 <View style={styles.diseaseHeader}>
                   <View style={[styles.diseaseIconContainer, { backgroundColor: disease.textColor + '20' }]}>
-                    <MaterialIcons name={disease.icon as any} size={18} color={disease.textColor} />
+                    <IconSymbol name={disease.icon} size={18} color={disease.textColor} />
                   </View>
                   <ThemedText type="defaultSemiBold" style={[styles.diseaseName, { color: disease.textColor }]}>
-                    {t(disease.nameKey)}
+                    {disease.name}
                   </ThemedText>
                 </View>
-                <ThemedText style={styles.diseaseDesc}>{t(disease.descKey)}</ThemedText>
+                <ThemedText style={styles.diseaseDesc}>{disease.desc}</ThemedText>
               </LinearGradient>
             </TouchableOpacity>
           ))}
@@ -202,8 +199,8 @@ export default function ExploreScreen() {
             <IconSymbol name="book.fill" size={22} color="#FFF" />
           </View>
           <View style={{ flex: 1 }}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>{t('detailedGuidesTitle')}</ThemedText>
-            <ThemedText style={styles.sectionSubtext}>{t('detailedGuidesSubtitle')}</ThemedText>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>{t('guidesTitle')}</ThemedText>
+            <ThemedText style={styles.sectionSubtext}>{t('guidesSubtitle')}</ThemedText>
           </View>
         </View>
 
@@ -215,8 +212,8 @@ export default function ExploreScreen() {
                   <ThemedText style={styles.guideBulletText}>1</ThemedText>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <ThemedText type="defaultSemiBold" style={styles.guideItemTitle}>{t('cropRotation')}</ThemedText>
-                  <ThemedText style={styles.guideItemText}>{t('cropRotationDesc')}</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.guideItemTitle}>{t('guideRotationTitle')}</ThemedText>
+                  <ThemedText style={styles.guideItemText}>{t('guideRotationDesc')}</ThemedText>
                 </View>
               </View>
 
@@ -225,8 +222,8 @@ export default function ExploreScreen() {
                   <ThemedText style={styles.guideBulletText}>2</ThemedText>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <ThemedText type="defaultSemiBold" style={styles.guideItemTitle}>{t('properSpacing')}</ThemedText>
-                  <ThemedText style={styles.guideItemText}>{t('properSpacingDesc')}</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.guideItemTitle}>{t('guideSpacingTitle')}</ThemedText>
+                  <ThemedText style={styles.guideItemText}>{t('guideSpacingDesc')}</ThemedText>
                 </View>
               </View>
 
@@ -235,8 +232,8 @@ export default function ExploreScreen() {
                   <ThemedText style={styles.guideBulletText}>3</ThemedText>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <ThemedText type="defaultSemiBold" style={styles.guideItemTitle}>{t('mulching')}</ThemedText>
-                  <ThemedText style={styles.guideItemText}>{t('mulchingDesc')}</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.guideItemTitle}>{t('guideMulchingTitle')}</ThemedText>
+                  <ThemedText style={styles.guideItemText}>{t('guideMulchingDesc')}</ThemedText>
                 </View>
               </View>
             </View>
@@ -248,28 +245,28 @@ export default function ExploreScreen() {
                 <View style={styles.guideBullet}>
                   <ThemedText style={styles.guideBulletText}>1</ThemedText>
                 </View>
-                <ThemedText style={styles.guideItemText}>{t('guideStep1')}</ThemedText>
+                <ThemedText style={styles.guideItemText}>{t('guideAppStep1')}</ThemedText>
               </View>
 
               <View style={styles.guideItem}>
                 <View style={styles.guideBullet}>
                   <ThemedText style={styles.guideBulletText}>2</ThemedText>
                 </View>
-                <ThemedText style={styles.guideItemText}>{t('guideStep2')}</ThemedText>
+                <ThemedText style={styles.guideItemText}>{t('guideAppStep2')}</ThemedText>
               </View>
 
               <View style={styles.guideItem}>
                 <View style={styles.guideBullet}>
                   <ThemedText style={styles.guideBulletText}>3</ThemedText>
                 </View>
-                <ThemedText style={styles.guideItemText}>{t('guideStep3')}</ThemedText>
+                <ThemedText style={styles.guideItemText}>{t('guideAppStep3')}</ThemedText>
               </View>
 
               <View style={styles.guideItem}>
                 <View style={styles.guideBullet}>
                   <ThemedText style={styles.guideBulletText}>4</ThemedText>
                 </View>
-                <ThemedText style={styles.guideItemText}>{t('guideStep4')}</ThemedText>
+                <ThemedText style={styles.guideItemText}>{t('guideAppStep4')}</ThemedText>
               </View>
             </View>
           </Collapsible>

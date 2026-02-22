@@ -2,7 +2,7 @@
     {
         "name": "Copper Oxychloride",
         "type": "fungicide",
-        "target_diseases": "Bacterial spot, Early blight, Late blight, Bacterial Blight",
+        "target_diseases": "Bacterial spot, Early blight, Late blight, Bacterial Blight, Downy Mildew, Black Rot, Leaf Blight",
         "dosage_per_acre": "2-3 kg in 200-300 liters of water",
         "frequency": "Spray every 7-10 days",
         "cost_per_liter": 450,
@@ -14,7 +14,7 @@
     {
         "name": "Mancozeb",
         "type": "fungicide",
-        "target_diseases": "Early blight, Late blight, Leaf spot, Brown spot, Leaf blast",
+        "target_diseases": "Early blight, Late blight, Leaf spot, Brown spot, Leaf blast, Black Rot, Gray Leaf Spot, Common Rust, Bacterial leaf blight",
         "dosage_per_acre": "2 kg in 200 liters of water",
         "frequency": "Spray every 7-14 days",
         "cost_per_liter": 380,
@@ -26,7 +26,7 @@
     {
         "name": "Chlorothalonil",
         "type": "fungicide",
-        "target_diseases": "Early blight, Septoria leaf spot, Target spot, Leaf mold",
+        "target_diseases": "Early blight, Septoria leaf spot, Target Spot, Leaf Mold, Gray Leaf Spot, Common Rust, Potato Early Blight",
         "dosage_per_acre": "1.5-2 liters in 200 liters of water",
         "frequency": "Spray every 7-10 days",
         "cost_per_liter": 520,
@@ -38,7 +38,7 @@
     {
         "name": "Azoxystrobin",
         "type": "fungicide",
-        "target_diseases": "Late blight, Early blight, Leaf blast, Brown rust, Yellow rust",
+        "target_diseases": "Late blight, Early blight, Leaf blast, Brown rust, Yellow rust, Gray Leaf Spot, Northern Corn Leaf Blight, Black Rot, ESCA",
         "dosage_per_acre": "200-250 ml in 200 liters of water",
         "frequency": "Spray every 10-14 days",
         "cost_per_liter": 1200,
@@ -50,7 +50,7 @@
     {
         "name": "Carbendazim",
         "type": "fungicide",
-        "target_diseases": "Loose Smut, Brown spot, Leaf blast, Early blight",
+        "target_diseases": "Loose Smut, Brown spot, Leaf blast, Early blight, Leaf smut, Leaf Blight (Grape)",
         "dosage_per_acre": "500 ml in 200 liters of water",
         "frequency": "Spray every 15 days or seed treatment",
         "cost_per_liter": 350,
@@ -62,7 +62,7 @@
     {
         "name": "Propiconazole",
         "type": "fungicide",
-        "target_diseases": "Brown rust, Yellow rust, Leaf blast, Late blight",
+        "target_diseases": "Brown rust, Yellow rust, Leaf blast, Late blight, Common Rust (Maize), Gray Leaf Spot",
         "dosage_per_acre": "250-300 ml in 200 liters of water",
         "frequency": "Spray every 14-21 days",
         "cost_per_liter": 890,
@@ -74,7 +74,7 @@
     {
         "name": "Imidacloprid",
         "type": "insecticide",
-        "target_diseases": "Whiteflies (Curl Virus vector), Jassids, Aphids",
+        "target_diseases": "Whiteflies (Curl Virus vector), Jassids, Aphids, Leaf hoppers, Tomato Yellow Leaf Curl Virus vector",
         "dosage_per_acre": "100-150 ml in 200 liters of water",
         "frequency": "Spray every 15-20 days",
         "cost_per_liter": 680,
@@ -84,9 +84,33 @@
         "incompatible_with": "Alkaline pesticides"
     },
     {
+        "name": "Myclobutanil",
+        "type": "fungicide",
+        "target_diseases": "Black Rot, Powdery Mildew, Brown Rot",
+        "dosage_per_acre": "100-120 ml in 200 liters of water",
+        "frequency": "Spray every 10-14 days",
+        "cost_per_liter": 1400,
+        "is_organic": false,
+        "is_government_approved": true,
+        "warnings": "Systemic fungicide. strictly follow Pre-Harvest Interval (PHI).",
+        "incompatible_with": "Strong alkaline agents"
+    },
+    {
+        "name": "Metalaxyl",
+        "type": "fungicide",
+        "target_diseases": "Late blight (Potato/Tomato), Downy Mildew",
+        "dosage_per_acre": "500g in 200 liters of water",
+        "frequency": "Preventive spray",
+        "cost_per_liter": 950,
+        "is_organic": false,
+        "is_government_approved": true,
+        "warnings": "Often sold as mix with Mancozeb. Good for soil drenching too.",
+        "incompatible_with": "Unknown"
+    },
+    {
         "name": "Thiamethoxam",
         "type": "insecticide",
-        "target_diseases": "Whiteflies, Jassids, Leaf hoppers, Hispa",
+        "target_diseases": "Whiteflies, Jassids, Leaf hoppers, Hispa, Aphids",
         "dosage_per_acre": "40-50 grams in 200 liters of water",
         "frequency": "Spray every 15-20 days",
         "cost_per_liter": 750,
@@ -98,7 +122,7 @@
     {
         "name": "Abamectin",
         "type": "insecticide/miticide",
-        "target_diseases": "Spider mites, Leaf miners, Hispa",
+        "target_diseases": "Spider mites, Leaf miners, Hispa, Two-spotted spider mite",
         "dosage_per_acre": "300-400 ml in 200 liters of water",
         "frequency": "Spray every 10-15 days",
         "cost_per_liter": 920,
@@ -108,9 +132,21 @@
         "incompatible_with": "Highly alkaline products"
     },
     {
+        "name": "Streptomycin Sulfate",
+        "type": "antibiotic/bactericide",
+        "target_diseases": "Bacterial spot, Bacterial leaf blight, Bacterial Blight (Cotton)",
+        "dosage_per_acre": "12-15g in 60 liters of water",
+        "frequency": "Spray when symptoms appear",
+        "cost_per_liter": 1500,
+        "is_organic": false,
+        "is_government_approved": true,
+        "warnings": "Use specifically for bacterial diseases. Do not overuse to avoid resistance.",
+        "incompatible_with": "Bordeaux mixture, Pesticides"
+    },
+    {
         "name": "Neem Oil",
         "type": "organic insecticide",
-        "target_diseases": "Whiteflies, Jassids, Spider mites, Aphids, Early stage fungal diseases",
+        "target_diseases": "Whiteflies, Jassids, Spider mites, Aphids, Early stage fungal diseases, Common_Rust",
         "dosage_per_acre": "2-3 liters in 200 liters of water",
         "frequency": "Spray every 7-10 days",
         "cost_per_liter": 280,
@@ -122,7 +158,7 @@
     {
         "name": "Bacillus thuringiensis (Bt)",
         "type": "organic insecticide",
-        "target_diseases": "Caterpillars, Leaf eating insects",
+        "target_diseases": "Caterpillars, Leaf eating insects, Corn Borer",
         "dosage_per_acre": "500 grams in 200 liters of water",
         "frequency": "Spray every 7-10 days",
         "cost_per_liter": 420,
@@ -134,7 +170,7 @@
     {
         "name": "Trichoderma",
         "type": "organic fungicide",
-        "target_diseases": "Soil-borne diseases, Root rot, Damping off",
+        "target_diseases": "Soil-borne diseases, Root rot, Damping off, Fusarium Wilt, ESCA (Soil application)",
         "dosage_per_acre": "1-2 kg mixed with organic matter or 500g in 200 liters water",
         "frequency": "Apply at sowing and every 30 days",
         "cost_per_liter": 350,
@@ -146,7 +182,7 @@
     {
         "name": "Bordeaux Mixture",
         "type": "organic fungicide",
-        "target_diseases": "Late blight, Early blight, Bacterial spot, Leaf spot",
+        "target_diseases": "Late blight, Early blight, Bacterial spot, Leaf spot, Black Rot, Downy Mildew",
         "dosage_per_acre": "4 kg copper sulfate + 4 kg lime in 200 liters water",
         "frequency": "Spray every 10-15 days",
         "cost_per_liter": 180,
@@ -158,7 +194,7 @@
     {
         "name": "Sulfur",
         "type": "organic fungicide/miticide",
-        "target_diseases": "Powdery mildew, Spider mites, Rust diseases",
+        "target_diseases": "Powdery mildew, Spider mites, Rust diseases, Common_Rust",
         "dosage_per_acre": "2-3 kg in 200 liters of water",
         "frequency": "Spray every 10-14 days",
         "cost_per_liter": 220,

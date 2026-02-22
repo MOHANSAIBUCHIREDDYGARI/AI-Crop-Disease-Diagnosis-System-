@@ -8,9 +8,9 @@ def validate_email(email: str) -> bool:
 
 def validate_phone(phone: str) -> bool:
     """Validate phone number (Indian format)"""
-    # Remove spaces and dashes
+    
     phone = phone.replace(' ', '').replace('-', '')
-    # Check if it's 10 digits or starts with +91
+    
     pattern = r'^(\+91)?[6-9]\d{9}$'
     return re.match(pattern, phone) is not None
 
@@ -94,13 +94,13 @@ def sanitize_input(text: str, max_length: int = 500) -> str:
     if not text:
         return ''
     
-    # Remove any HTML tags
+    
     text = re.sub(r'<[^>]+>', '', text)
     
-    # Trim to max length
+    
     text = text[:max_length]
     
-    # Remove leading/trailing whitespace
+    
     text = text.strip()
     
     return text
@@ -108,13 +108,13 @@ def sanitize_input(text: str, max_length: int = 500) -> str:
 def validate_coordinates(latitude: Optional[float], longitude: Optional[float]) -> bool:
     """Validate GPS coordinates"""
     if latitude is None or longitude is None:
-        return True  # Coordinates are optional
+        return True  
     
-    # Check latitude range
+    
     if not -90 <= latitude <= 90:
         return False
     
-    # Check longitude range
+    
     if not -180 <= longitude <= 180:
         return False
     
@@ -132,13 +132,13 @@ def validate_user_registration(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     errors = []
     
-    # Validate email
+    
     if 'email' not in data or not data['email']:
         errors.append('Email is required')
     elif not validate_email(data['email']):
         errors.append('Invalid email format')
     
-    # Validate password
+    
     if 'password' not in data or not data['password']:
         errors.append('Password is required')
     else:
@@ -146,18 +146,18 @@ def validate_user_registration(data: Dict[str, Any]) -> Dict[str, Any]:
         if not pwd_validation['is_valid']:
             errors.append(pwd_validation['message'])
     
-    # Validate name
+    
     if 'name' not in data or not data['name']:
         errors.append('Name is required')
     elif len(data['name']) < 2:
         errors.append('Name must be at least 2 characters')
     
-    # Validate phone (optional)
+    
     if 'phone' in data and data['phone']:
         if not validate_phone(data['phone']):
             errors.append('Invalid phone number format')
     
-    # Validate land area (optional)
+    
     if 'farm_size' in data and data['farm_size']:
         try:
             area = float(data['farm_size'])
@@ -184,17 +184,17 @@ def validate_diagnosis_request(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     errors = []
     
-    # Validate crop type
+    
     if 'crop' not in data or not data['crop']:
         errors.append('Crop type is required')
     elif not validate_crop_type(data['crop']):
         errors.append('Unsupported crop type. Supported: tomato, rice, wheat, cotton')
     
-    # Validate image file
+    
     if 'image' not in data or not data['image']:
         errors.append('Image is required')
     
-    # Validate coordinates (optional)
+    
     if 'latitude' in data or 'longitude' in data:
         lat = data.get('latitude')
         lon = data.get('longitude')

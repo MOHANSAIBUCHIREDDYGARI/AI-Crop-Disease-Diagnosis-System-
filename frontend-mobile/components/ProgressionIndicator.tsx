@@ -1,20 +1,25 @@
+
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AlertCircle, AlertTriangle, AlertOctagon } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 
-
 interface ProgressionIndicatorProps {
-    severity: number; // 0-100
+    severity: number;
     stage?: string;
 }
 
+/**
+ * Shows how far the disease has spread using a progress bar.
+ * Also changes color like a traffic light: Green (Early) -> Yellow (Moderate) -> Red (Severe).
+ */
 const ProgressionIndicator: React.FC<ProgressionIndicatorProps> = ({ severity, stage }) => {
     const { t } = useLanguage();
+
     const getSeverityLevel = () => {
-        if (severity < 30) return { level: t('earlyStage'), color: '#4caf50', icon: AlertCircle, bg: '#e8f5e9' };
-        if (severity < 60) return { level: t('moderateStage'), color: '#ff9800', icon: AlertTriangle, bg: '#fff3e0' };
-        return { level: t('severeStage'), color: '#d32f2f', icon: AlertOctagon, bg: '#ffebee' };
+        if (severity < 30) return { level: t('stage_early'), color: '#4caf50', icon: AlertCircle, bg: '#e8f5e9' };
+        if (severity < 60) return { level: t('stage_moderate'), color: '#ff9800', icon: AlertTriangle, bg: '#fff3e0' };
+        return { level: t('stage_severe'), color: '#d32f2f', icon: AlertOctagon, bg: '#ffebee' };
     };
 
     const severityInfo = getSeverityLevel();
@@ -32,6 +37,7 @@ const ProgressionIndicator: React.FC<ProgressionIndicatorProps> = ({ severity, s
                 </View>
             </View>
 
+            {/* The actual progress bar */}
             <View style={styles.progressBarContainer}>
                 <View style={styles.progressBarBg}>
                     <View
@@ -47,11 +53,12 @@ const ProgressionIndicator: React.FC<ProgressionIndicatorProps> = ({ severity, s
                 <Text style={styles.percentageText}>{severity.toFixed(1)}%</Text>
             </View>
 
+            {/* Helpful message based on severity */}
             <View style={[styles.infoCard, { backgroundColor: severityInfo.bg }]}>
                 <Text style={[styles.infoText, { color: severityInfo.color }]}>
-                    {severity < 30 && t('earlyDetectionTip')}
-                    {severity >= 30 && severity < 60 && t('moderateInfectionTip')}
-                    {severity >= 60 && t('severeInfectionTip')}
+                    {severity < 30 && t('earlyDetectionMsg')}
+                    {severity >= 30 && severity < 60 && t('moderateInfectionMsg')}
+                    {severity >= 60 && t('severeInfectionMsg')}
                 </Text>
             </View>
 

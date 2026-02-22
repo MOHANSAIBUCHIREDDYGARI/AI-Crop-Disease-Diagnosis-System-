@@ -21,13 +21,13 @@ for filename in os.listdir(models_dir):
                 
                 print("Model Type:", conf.get('class_name'))
                 
-                # Print first few layers to guess architecture
+                
                 layers = conf['config']['layers']
                 print("First 3 layers:")
                 for layer in layers[:3]:
                     print(f" - {layer['class_name']}: {layer['config']['name']}")
                     
-                # Check for expanded_conv (MobileNet indicator)
+                
                 is_mobilenet = any('expanded_conv' in l['config']['name'] for l in layers)
                 print(f"Contains 'expanded_conv' layers (MobileNetV2 check): {is_mobilenet}")
                     

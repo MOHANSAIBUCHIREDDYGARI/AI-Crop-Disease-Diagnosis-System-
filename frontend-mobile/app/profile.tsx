@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { User, LogOut, Globe, Bell, Shield, Info, HelpCircle, ChevronRight, Languages } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
@@ -7,12 +7,14 @@ import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
 const LANGUAGES = [
-    { code: 'en', name: 'English' },
-    { code: 'hi', name: 'Hindi' },
-    { code: 'te', name: 'Telugu' },
-    { code: 'ta', name: 'Tamil' },
-    { code: 'kn', name: 'Kannada' },
-    { code: 'mr', name: 'Marathi' },
+    { code: 'en', name: 'English', nativeName: 'English' },
+    { code: 'hi', name: 'Hindi', nativeName: 'हिंदी' },
+    { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
+    { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
+    { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ' },
+    { code: 'mr', name: 'Marathi', nativeName: 'मराठी' },
+    { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം' },
+    { code: 'tcy', name: 'Tulu', nativeName: 'ತುಳು' },
 ];
 
 export default function ProfileScreen() {
@@ -23,34 +25,54 @@ export default function ProfileScreen() {
     const [showLanguagePicker, setShowLanguagePicker] = useState(false);
 
     const handleSignOut = async () => {
-        Alert.alert(
-            t('signOutTitle'),
-            t('signOutMessage'),
-            [
-                { text: t('cancel'), style: 'cancel' },
-                {
-                    text: t('logOut'),
-                    style: 'destructive',
-                    onPress: async () => {
-                        await signOut();
-                        router.replace('/login');
-                    }
-                }
-            ]
-        );
+        const doLogout = async () => {
+            try {
+                await signOut();
+            } catch (e) {
+                console.error('SignOut error:', e);
+            }
+            if (Platform.OS === 'web') {
+                (window as any).location.href = '/login';
+            } else {
+                router.replace('/login');
+            }
+        };
+
+        if (Platform.OS === 'web') {
+            // Alert.alert callbacks are unreliable on React Native Web — use native browser confirm
+            const confirmed = (window as any).confirm('Are you sure you want to log out?');
+            if (confirmed) {
+                await doLogout();
+            }
+        } else {
+            Alert.alert(
+                t('signOutTitle'),
+                t('signOutMessage'),
+                [
+                    { text: t('cancel'), style: 'cancel' },
+                    { text: t('logOut'), style: 'destructive', onPress: doLogout }
+                ]
+            );
+        }
     };
 
+    /**
+     * Change Language Strategy:
+     * 1. Update the app state instantly (so the UI changes).
+     * 2. If logged in, tell the server (sync).
+     * 3. Show a nice success message.
+     */
     const changeLanguage = async (code: string) => {
         try {
-            // Optimistically update language
             console.log('User selected language:', code);
+            // Update the app's language setting
             setLanguage(code as any);
             setShowLanguagePicker(false);
 
             if (!isGuest && user) {
                 console.log('Syncing language with backend...');
                 await api.put('/user/language', { language: code });
-                // Update user context with new language
+
                 await updateUser({ preferred_language: code });
                 console.log('Backend sync successful');
             }
@@ -58,14 +80,14 @@ export default function ProfileScreen() {
             Alert.alert(t('success'), `${t('languageChanged')} ${LANGUAGES.find(l => l.code === code)?.name}`);
         } catch (error) {
             console.error('Failed to update language on backend', error);
-            // Optional: revert language if strict sync is required, but for now keep local preference
-            // setLanguage(user?.preferred_language as any || 'en'); 
+            // Even if the server fails, we keep the local change so the user isn't stuck
             Alert.alert(t('error'), t('failedUpdate'));
         }
     };
 
     return (
         <ScrollView style={styles.container}>
+            {/* Header: Avatar & Name */}
             <View style={styles.profileHeader}>
                 <View style={styles.avatarCircle}>
                     <User size={40} color="#4caf50" />
@@ -80,20 +102,23 @@ export default function ProfileScreen() {
                 )}
             </View>
 
+            {/* Settings Section */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('preferences')}</Text>
 
+                {/* Language Picker Toggle */}
                 <TouchableOpacity style={styles.menuItem} onPress={() => setShowLanguagePicker(!showLanguagePicker)}>
                     <View style={styles.menuIconCircle}>
                         <Languages size={20} color="#4caf50" />
                     </View>
                     <View style={styles.menuContent}>
                         <Text style={styles.menuLabel}>{t('appLanguage')}</Text>
-                        <Text style={styles.menuSubLabel}>{LANGUAGES.find(l => l.code === language)?.name}</Text>
+                        <Text style={styles.menuSubLabel}>{LANGUAGES.find(l => l.code === language)?.nativeName}</Text>
                     </View>
                     <ChevronRight size={20} color="#ccc" />
                 </TouchableOpacity>
 
+                {/* Dropdown for Languages */}
                 {showLanguagePicker && (
                     <View style={styles.languageGrid}>
                         {LANGUAGES.map((lang) => (
@@ -103,7 +128,7 @@ export default function ProfileScreen() {
                                 onPress={() => changeLanguage(lang.code)}
                             >
                                 <Text style={[styles.langOptionText, language === lang.code && styles.langOptionTextSelected]}>
-                                    {lang.name}
+                                    {lang.nativeName}
                                 </Text>
                             </TouchableOpacity>
                         ))}
@@ -126,6 +151,7 @@ export default function ProfileScreen() {
                 </View>
             </View>
 
+            {/* Legal & Help */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('supportLegal')}</Text>
 

@@ -19,7 +19,6 @@ export default function ChatScreen() {
     const { t, language } = useLanguage();
     console.log('ChatScreen current language:', language);
     const flatListRef = useRef<FlatList>(null);
-
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
@@ -40,7 +39,7 @@ export default function ChatScreen() {
     const { user, isGuest } = useAuth();
 
 
-    // Sync initial detailed message with language
+    // If a registered user logs in, load their past conversation
     useEffect(() => {
         if (!isGuest && user) {
             fetchChatHistory();
@@ -63,6 +62,7 @@ export default function ChatScreen() {
         try {
             const response = await api.get('/chatbot/history');
             if (response.data.length > 0) {
+                // Transform server data into our message format
                 const historyMessages = response.data.flatMap((chat: any) => [
                     {
                         id: `user-${chat.id}`,
@@ -160,6 +160,7 @@ export default function ChatScreen() {
         if (isUploading) return;
         if ((!inputText.trim() && !selectedMedia) || loading) return;
 
+        // 1. Show user's message immediately
         const userMessage: Message = {
             id: Date.now().toString(),
             text: inputText.trim(),
@@ -192,6 +193,7 @@ export default function ChatScreen() {
 
             const response = await api.post('/chatbot/message', payload);
 
+            // 3. Show AI's response
             const botMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 text: response.data.response,
@@ -202,7 +204,7 @@ export default function ChatScreen() {
             setMessages((prev) => [...prev, botMessage]);
         } catch (error: any) {
             console.error('Chat error', error);
-            const errorMessage = error.response?.data?.error || "Sorry, I'm having trouble connecting to my brain right now.";
+            const errorMessage = error.response?.data?.error || t('chatbotError');
 
             setMessages((prev) => [
                 ...prev,
@@ -261,14 +263,14 @@ export default function ChatScreen() {
     return (
         <KeyboardAvoidingView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            behavior="padding"
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
         >
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Agri-AI Assistant ({language})</Text>
+                <Text style={styles.headerTitle}>{t('chatbotTitle')}</Text>
                 <View style={styles.onlineStatus}>
                     <View style={styles.onlineDot} />
-                    <Text style={styles.onlineText}>Online</Text>
+                    <Text style={styles.onlineText}>{t('chatbotOnline')}</Text>
                 </View>
             </View>
 
@@ -282,12 +284,7 @@ export default function ChatScreen() {
                 onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
             />
 
-            {isGuest && (
-                <View style={styles.guestReminder}>
-                    <HelpCircle size={14} color="#666" />
-                    <Text style={styles.guestReminderText}>Sign in to save your conversation history</Text>
-                </View>
-            )}
+
 
             <View style={styles.inputContainer}>
                 {selectedMedia && (
@@ -322,7 +319,7 @@ export default function ChatScreen() {
                     </TouchableOpacity>
                     <TextInput
                         style={styles.input}
-                        placeholder="Ask about crops, pests..."
+                        placeholder={t('chatbotPlaceholder')}
                         value={inputText}
                         onChangeText={setInputText}
                         multiline

@@ -2,7 +2,7 @@ import json
 import os
 import sys
 
-# Add parent directory to path
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db_connection import db
@@ -12,10 +12,10 @@ def seed_database():
     
     print("Starting database seeding...")
     
-    # Load seed data
+    
     seed_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Seed diseases
+    
     print("\nSeeding diseases...")
     with open(os.path.join(seed_dir, 'diseases.json'), 'r', encoding='utf-8') as f:
         diseases = json.load(f)
@@ -39,7 +39,7 @@ def seed_database():
         except Exception as e:
             print(f"  ✗ Error adding {disease['disease_name']}: {e}")
     
-    # Seed pesticides
+    
     print("\nSeeding pesticides...")
     with open(os.path.join(seed_dir, 'pesticides.json'), 'r', encoding='utf-8') as f:
         pesticides = json.load(f)
@@ -70,7 +70,7 @@ def seed_database():
     
     print("\n✅ Database seeding completed successfully!")
     
-    # Print statistics
+    
     disease_count = db.execute_query("SELECT COUNT(*) as count FROM diseases")[0]['count']
     pesticide_count = db.execute_query("SELECT COUNT(*) as count FROM pesticides")[0]['count']
     

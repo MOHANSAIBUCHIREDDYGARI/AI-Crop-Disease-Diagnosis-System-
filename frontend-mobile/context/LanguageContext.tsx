@@ -12,18 +12,17 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+/**
+ * Language Provider:
+ * This makes sure the app speaks the user's language.
+ * It handles loading translations from the backend and switching languages on the fly.
+ */
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { user } = useAuth();
     const [language, setLanguageState] = useState<LanguageCode>('en');
-    const [translations, setTranslations] = useState(Translations.en);
-    const [isLoading, setIsLoading] = useState(false);
+    const [dynamicTranslations, setDynamicTranslations] = useState<Record<string, string>>({});
 
-    // Initial load - start with English
-    useEffect(() => {
-        setTranslations(Translations.en);
-    }, []);
-
-    // Sync with user preference if logged in
+    // If the user logs in and has a preferred language, switch to it automatically
     useEffect(() => {
         if (user?.preferred_language) {
             console.log('Syncing language from user pref:', user.preferred_language);
@@ -31,48 +30,60 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     }, [user?.preferred_language]);
 
-    const fetchTranslations = async (lang: LanguageCode) => {
-        if (lang === 'en') {
-            setTranslations(Translations.en);
-            return;
-        }
+    // Fetch new translations whenever the language changes
+    // (We don't ship all languages in the app bundle to keep it small)
+    useEffect(() => {
+        const fetchDynamicTranslations = async () => {
+            try {
+                // English is the default, no need to fetch
+                if (language === 'en') {
+                    setDynamicTranslations({});
+                    return;
+                }
 
-        setIsLoading(true);
-        try {
-            console.log(`Fetching translations for ${lang}...`);
-            // Check if we already have it in local state/cache (simple implementation)
-            // Ideally we would cache this in a more persistent way, but for now just fetch
+                console.log('Fetching dynamic translations for:', language);
+                const response = await api.get(`/user/translations?lang=${language}`);
+                if (response.data) {
+                    // Update our dictionary with new words
+                    setDynamicTranslations(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch translations:', error);
+            }
+        };
 
-            const response = await api.post('/translations/batch', {
-                texts: Translations.en,
-                target_language: lang,
-            });
-
-            setTranslations(response.data);
-        } catch (error) {
-            console.error('Error fetching translations:', error);
-            // Fallback to English on error
-            setTranslations(Translations.en);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        fetchDynamicTranslations();
+    }, [language]);
 
     const setLanguage = (lang: LanguageCode) => {
         console.log('Setting language to:', lang);
         setLanguageState(lang);
-        fetchTranslations(lang);
     };
 
+    /**
+     * Translator Function (t):
+     * Takes a key (e.g., 'welcome_message') and gives back the text in the correct language.
+     * Priorities:
+     * 1. Dynamic translation from backend
+     * 2. Hardcoded translation in Translations.ts
+     * 3. Fallback to English
+     */
     const t = (key: keyof typeof Translations['en']) => {
-        return translations[key] || Translations['en'][key] || key;
+        // Check dynamic updates first
+        if (dynamicTranslations[key]) {
+            return dynamicTranslations[key];
+        }
+
+        // Check static file
+        const translation = (Translations[language] as any)?.[key];
+        return translation || Translations['en'][key] || key;
     };
 
     const value = {
         language,
         setLanguage,
         t,
-        translations,
+        translations: { ...Translations['en'], ...Translations[language] },
     };
 
     return (
