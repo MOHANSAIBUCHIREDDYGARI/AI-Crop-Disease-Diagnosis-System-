@@ -5,15 +5,12 @@ import datetime
 import sys
 import os
 
-# Add the project root to the path so we can import our modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from database.db_connection import db
 from config.settings import settings
 from utils.validators import validate_user_registration, validate_email, validate_language
-from services.language_service import get_translated_ui_labels
 
-# Create a 'blueprint' for all user-related routes (registration, login, profile)
 user_bp = Blueprint('user', __name__)
 
 def generate_token(user_id: str) -> str:
@@ -24,30 +21,25 @@ def generate_token(user_id: str) -> str:
         # The token expires after a set time for security
         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=settings.JWT_EXPIRATION_HOURS)
     }
-    # Seal the token with our secret key
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256')
 
 def verify_token(token: str) -> dict:
-    """Check if the user's 'Access Badge' (Token) is valid"""
+    """Verify JWT token"""
     try:
-        # Try to decode the token using our secret key
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
-        # If successful, return the user ID hidden inside
         return {'valid': True, 'user_id': payload['user_id']}
     except jwt.ExpiredSignatureError:
-        # Token is too old
         return {'valid': False, 'error': 'Token expired'}
     except jwt.InvalidTokenError:
-        # Token is fake or broken
         return {'valid': False, 'error': 'Invalid token'}
 
 @user_bp.route('/register', methods=['POST'])
 def register():
-    """Register a new user in our system"""
+    """Register a new user"""
     try:
         data = request.get_json()
         
-        # Check if the user filled in the form correctly
+        # Validate input
         validation = validate_user_registration(data)
         if not validation['is_valid']:
             return jsonify({'error': validation['errors']}), 400
@@ -58,7 +50,7 @@ def register():
         if users_collection.find_one({'email': data['email']}):
              return jsonify({'error': 'Email already registered'}), 400
         
-        # Scramble the password so it's safe even if our database is seen
+        # Hash password
         password_hash = bcrypt.hashpw(
             data['password'].encode('utf-8'),
             bcrypt.gensalt()
@@ -94,7 +86,7 @@ def register():
 
 @user_bp.route('/login', methods=['POST'])
 def login():
-    """Log in an existing user"""
+    """Login user"""
     try:
         data = request.get_json()
         
@@ -135,9 +127,9 @@ from bson.objectid import ObjectId
 
 @user_bp.route('/profile', methods=['GET'])
 def get_profile():
-    """Get the profile details of the logged-in user"""
+    """Get user profile"""
     try:
-        # Check for the secure token in the header
+        # Get token from header
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'No token provided'}), 401
@@ -174,9 +166,9 @@ def get_profile():
 
 @user_bp.route('/profile', methods=['PUT'])
 def update_profile():
-    """Update the user's profile information"""
+    """Update user profile"""
     try:
-        # Authenticate the user
+        # Verify token
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'No token provided'}), 401
@@ -209,9 +201,9 @@ def update_profile():
 
 @user_bp.route('/language', methods=['PUT'])
 def update_language():
-    """Update the user's preferred language"""
+    """Update preferred language"""
     try:
-        # Authenticate first
+        # Verify token
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'No token provided'}), 401

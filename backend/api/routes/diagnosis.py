@@ -5,50 +5,42 @@ from werkzeug.utils import secure_filename
 import datetime
 from bson.objectid import ObjectId
 
-# Cleanly add the project root to our python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from database.db_connection import db
 from config.settings import settings
-from utils.image_quality_check import check_image_quality, check_content_validity
+from utils.image_quality_check import check_image_quality
 from utils.preprocess import preprocess_image
 from utils.validators import validate_diagnosis_request
-from services.language_service import translate_diagnosis_result, translate_disease_info, translate_pesticide_info, translate_text, get_translated_ui_labels
+from services.language_service import translate_diagnosis_result, translate_disease_info
 from services.voice_service import generate_diagnosis_voice
 from services.pesticide_service import get_severity_based_recommendations
 from services.cost_service import calculate_total_cost
 from services.weather_service import get_weather_data, get_weather_based_advice
 from api.routes.user import verify_token
 
-
-# Ensure we can find the ML models
+# Import ML prediction function
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'ml'))
 from final_predictor import full_prediction
 
-# Organize our diagnosis routes
 diagnosis_bp = Blueprint('diagnosis', __name__)
 
 def allowed_file(filename):
-    """Check if the uploaded file has a valid extension (like .jpg or .png)"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in settings.ALLOWED_EXTENSIONS
 
 @diagnosis_bp.route('/detect', methods=['POST'])
 def detect_disease():
-    """
-    The main feature: Detect disease from an uploaded image!
-    Users can be logged in or anonymous.
-    """
+    """Detect disease from uploaded image (authentication optional)"""
     try:
-        
+        # Check for authentication (optional)
         user_id = None
-        language = 'en'  
+        language = 'en'  # Default language
         
-        # Debugging prints to help us see what's coming in
+        # DEBUG: Print request details
         print(f"DEBUG: Request files: {request.files}")
         print(f"DEBUG: Request form: {request.form}")
         print(f"DEBUG: Request headers: {dict(request.headers)}")
         
-        # Check if the user is logged in
         auth_header = request.headers.get('Authorization')
         if auth_header and auth_header.startswith('Bearer '):
             token = auth_header.split(' ')[1]
@@ -69,7 +61,7 @@ def detect_disease():
             language = request.form['language']
         
         
-        # Make sure they actually sent an image
+        # Check if image file is present
         if 'image' not in request.files:
             print("DEBUG: No 'image' key in request.files")
             return jsonify({'error': 'No image file provided'}), 400
@@ -84,21 +76,18 @@ def detect_disease():
             print(f"DEBUG: Invalid file type: {file.filename}")
             return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG allowed'}), 400
         
-        
-        # Identify the crop (e.g., tomato, rice)
+        # Get crop type
         crop = request.form.get('crop', '').lower()
         print(f"DEBUG: Crop value: '{crop}'")
-        if not crop or crop not in ['grape', 'maize', 'potato', 'rice', 'tomato']:
+        if not crop or crop not in ['tomato', 'rice', 'wheat', 'cotton']:
             print(f"DEBUG: Invalid crop: '{crop}'")
             return jsonify({'error': 'Valid crop type required (tomato, rice, potato)'}), 400
         
-        
-        # Get location for weather-based advice (optional)
+        # Get optional parameters
         latitude = request.form.get('latitude', type=float)
         longitude = request.form.get('longitude', type=float)
         
-        
-        # Save the file securely so we can process it
+        # Save uploaded file
         filename = secure_filename(file.filename)
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         user_prefix = f"{user_id}_" if user_id else "anonymous_"
@@ -106,80 +95,25 @@ def detect_disease():
         filepath = os.path.join(settings.UPLOAD_FOLDER, filename)
         file.save(filepath)
         
-        
-        # --- QUALITY CHECKS ---
-        # First, is the image blurry or too dark?
+        # Check image quality
         print(f"DEBUG: Checking image quality for: {filename}")
         quality_result = check_image_quality(filepath)
         print(f"DEBUG: Quality result: {quality_result}")
         
-        quality_warning = None  
-        
-        
         if not quality_result['is_valid']:
-            
-            # If dimensions are totally wrong, block it
-            if 'dimensions' in quality_result and quality_result['quality_score'] == 0.0:
-                 if os.path.exists(filepath):
-                    os.remove(filepath)
-                 return jsonify({
-                    'error': 'Image Rejected',
-                    'message': quality_result.get('reason'),
-                    'details': 'Image dimensions are invalid.'
-                }), 400
-
-            
-            # For other issues like blurriness, explain why
-            error_msg = quality_result.get('reason', 'Image quality too low')
-            details_msg = 'Please upload a clear, focused image.'
-            
-            # Translate error if needed
-            if language != 'en':
-                try:
-                    error_msg = translate_text(error_msg, language)
-                    details_msg = translate_text(details_msg, language)
-                except:
-                    pass
-
-            
-            if os.path.exists(filepath):
-                os.remove(filepath)
-
+            print(f"DEBUG: Image rejected - {quality_result.get('reason')}")
+            os.remove(filepath)  # Delete poor quality image
             return jsonify({
-                'error': 'Image Rejected',
-                'message': error_msg,
-                'details': details_msg
+                'error': 'Image quality too low',
+                'reason': quality_result.get('reason'),
+                'quality_score': quality_result.get('quality_score'),
+                'blur_score': quality_result.get('blur_score'),
+                'brightness_score': quality_result.get('brightness_score')
             }), 400
         
+        print(f"DEBUG: Image quality check passed!")
         
-        # Second, does the image actually look like a leaf?
-        print(f"DEBUG: Checking content validity for: {filename}")
-        content_result = check_content_validity(filepath)
-        print(f"DEBUG: Content result: {content_result}")
-        
-        if not content_result['is_valid']:
-            
-            if os.path.exists(filepath):
-                os.remove(filepath)
-            
-            error_msg = content_result.get('reason')
-            details_msg = 'Please upload a clear image of a crop leaf.'
-            
-            if language != 'en':
-                try:
-                    error_msg = translate_text(error_msg, language)
-                    details_msg = translate_text(details_msg, language)
-                except:
-                    pass
-            
-            return jsonify({
-                'error': 'Image Rejected',
-                'message': error_msg,
-                'details': details_msg
-            }), 400
-        
-        
-        # --- AI PREDICTION ---
+        # Perform disease detection
         print(f"DEBUG: Starting disease prediction for crop: {crop}")
         prediction_result = full_prediction(filepath, crop)
         print(f"DEBUG: Prediction result: {prediction_result}")
@@ -269,17 +203,12 @@ def detect_disease():
         
         # 3. Get weather advice if we have location
         weather_advice = None
-        try:
-            if latitude and longitude:
-                weather_data = get_weather_data(latitude, longitude)
-                if weather_data:
-                    weather_advice = get_weather_based_advice(weather_data, prediction_result['disease'])
-        except Exception as e:
-            print(f"DEBUG: Error getting weather advice: {e}")
-            weather_advice = None
+        if latitude and longitude:
+            weather_data = get_weather_data(latitude, longitude)
+            if weather_data:
+                weather_advice = get_weather_based_advice(weather_data, prediction_result['disease'])
         
-        
-        # --- SAVE HISTORY ---
+        # Save diagnosis to history (only if user is logged in)
         diagnosis_id = None
         try:
             if user_id:
@@ -321,8 +250,7 @@ def detect_disease():
         # Generate an audio file reading out the result
         voice_file = generate_diagnosis_voice(translated_result, language)
         
-        
-        # --- FINAL RESPONSE ---
+        # Prepare response
         response = {
             'diagnosis_id': diagnosis_id,
             'prediction': translated_result,
@@ -344,16 +272,13 @@ def detect_disease():
         return jsonify(response), 200
         
     except Exception as e:
-        print(f"CRITICAL ERROR in detect_disease: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @diagnosis_bp.route('/history', methods=['GET'])
 def get_history():
-    """Get the user's past diagnoses (so they can track progress)"""
+    """Get user's diagnosis history"""
     try:
-        
+        # Verify token
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'No token provided'}), 401
@@ -366,7 +291,7 @@ def get_history():
         
         user_id = token_data['user_id']
         
-        
+        # Get pagination parameters
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         skip = (page - 1) * per_page
@@ -426,9 +351,9 @@ def get_history():
 
 @diagnosis_bp.route('/<diagnosis_id>', methods=['GET'])
 def get_diagnosis_details(diagnosis_id):
-    """Get the full details of a specific diagnosis"""
+    """Get detailed diagnosis information"""
     try:
-        
+        # Verify token
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'No token provided'}), 401
@@ -537,7 +462,7 @@ def get_diagnosis_details(diagnosis_id):
 
 @diagnosis_bp.route('/voice/<filename>', methods=['GET'])
 def get_voice_file(filename):
-    """Serve the audio file so the app can play it"""
+    """Serve voice file"""
     try:
         filepath = os.path.join(settings.VOICE_OUTPUT_FOLDER, filename)
         if os.path.exists(filepath):

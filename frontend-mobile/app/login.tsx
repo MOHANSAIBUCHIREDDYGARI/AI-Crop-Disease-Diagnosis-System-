@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvo
 import { useRouter } from 'expo-router';
 import { Mail, Lock, User, Leaf } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { T } from '../components/ui/T';
@@ -14,6 +15,7 @@ export default function LoginScreen() {
     const [emailFocused, setEmailFocused] = useState(false);
     const [passwordFocused, setPasswordFocused] = useState(false);
     const { signIn, continueAsGuest } = useAuth();
+    const { t } = useLanguage();
     const router = useRouter();
     const { t } = useLanguage();
 

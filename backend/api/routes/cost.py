@@ -16,8 +16,7 @@ cost_bp = Blueprint('cost', __name__)
 def calculate_cost():
     """Calculate treatment and prevention costs"""
     try:
-        
-        # Verify authentication token
+        # Verify token
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'No token provided'}), 401
@@ -31,11 +30,10 @@ def calculate_cost():
         user_id = token_data['user_id']
         data = request.get_json()
         
-        # Get parameters from request
+        # Validate input
         diagnosis_id = data.get('diagnosis_id')
         land_area = data.get('land_area', type=float)
         
-        # Validate parameters
         if not diagnosis_id or not land_area:
             return jsonify({'error': 'diagnosis_id and land_area required'}), 400
         
@@ -55,7 +53,7 @@ def calculate_cost():
             return jsonify({'error': 'Diagnosis not found'}), 404
         
         
-        # Calculate costs based on disease and land area
+        # Calculate costs
         cost_data = calculate_total_cost(
             diagnosis['disease'],
             diagnosis['severity_percent'],
@@ -104,8 +102,7 @@ def calculate_cost():
 def get_cost_report(diagnosis_id):
     """Get downloadable cost report"""
     try:
-        
-        # Verify authentication token
+        # Verify token
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'No token provided'}), 401
@@ -147,8 +144,8 @@ def get_cost_report(diagnosis_id):
             'disease': diagnosis['disease'],
             'severity_level': diagnosis['stage'],
             'treatment': {
-                'pesticide_cost': cost_calc['treatment_cost'] * 0.7,  # Estimated 70% for pesticides
-                'labor_cost': cost_calc['treatment_cost'] * 0.3,      # Estimated 30% for labor
+                'pesticide_cost': cost_calc['treatment_cost'] * 0.7,  # Approximate
+                'labor_cost': cost_calc['treatment_cost'] * 0.3,
                 'total_treatment_cost': cost_calc['treatment_cost'],
                 'applications_needed': 2 if diagnosis['severity_percent'] < 25 else 3
             },
@@ -162,7 +159,7 @@ def get_cost_report(diagnosis_id):
             'urgency': 'high' if diagnosis['severity_percent'] > 50 else 'medium'
         }
         
-        # Generate the formatted report
+        # Generate report
         report = generate_cost_report(cost_data)
         
         return jsonify({'report': report, 'cost_data': cost_data}), 200

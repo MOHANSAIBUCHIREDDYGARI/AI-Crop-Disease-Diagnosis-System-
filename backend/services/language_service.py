@@ -1,5 +1,3 @@
-from deep_translator import GoogleTranslator
-from typing import Optional, Dict
 import json
 import os
 
@@ -20,8 +18,8 @@ def load_base_translations() -> Dict:
             with open(TRANSLATIONS_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
     except Exception as e:
-        print(f"Error loading translations: {e}")
-    return {}
+        print(f"Error loading translation cache: {e}")
+        return {}
 
 base_translations = load_base_translations()
 
@@ -49,9 +47,11 @@ def translate_text(text: str, target_language: str = 'en', source_language: str 
         return translation_cache[cache_key]
     
     try:
-        # Translate using deep-translator
-        translator = GoogleTranslator(source=source_language, target=target_language)
-        translated_text = translator.translate(text)
+        # Check if texts is empty
+        if not texts:
+            return {}
+            
+        translated_texts = translator.translate_batch(texts)
         
         if not translated_text:
              print(f"DEBUG: Translation returned empty for '{text}' to {target_language}")
@@ -65,14 +65,21 @@ def translate_text(text: str, target_language: str = 'en', source_language: str 
         # If it fails, at least give back the original text
         return text
 
-def translate_batch(texts: Dict[str, str], target_language: str) -> Dict[str, str]:
+def translate_batch(texts, target_language):
     """
-    Translate a batch of texts to target language
+    Translate a batch of texts using parallel processing.
+    texts: dict of {key: text} where key is the ID and text is the content to translate
+    target_language: language code (e.g., 'es', 'hi')
     """
-    print(f"DEBUG: translate_batch called for {target_language} with {len(texts)} texts")
-    if target_language == 'en':
+    if not texts or target_language == 'en':
         return texts
-        
+
+    cache = load_cache()
+    if target_language not in cache:
+        cache[target_language] = {}
+    
+    language_cache = cache[target_language]
+    missing_texts = set()
     results = {}
     
     try:
@@ -127,7 +134,7 @@ def translate_batch(texts: Dict[str, str], target_language: str) -> Dict[str, st
             
     return results
 
-def translate_diagnosis_result(result: Dict, target_language: str) -> Dict:
+def translate_diagnosis_result(result, target_language):
     """
     Translate the final diagnosis report (Disease Name, Crop Name, Stage).
     """
