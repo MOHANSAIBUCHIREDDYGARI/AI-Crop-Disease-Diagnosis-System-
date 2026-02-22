@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Alert } from 'react-native';
-import { Send, User, Bot, HelpCircle, Image as ImageIcon, X, Video, UploadCloud } from 'lucide-react-native';
+import { Send, User, Bot, HelpCircle, Video, UploadCloud, Mic, Square } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 import api from '../../services/api';
 
 interface Message {
@@ -38,6 +39,10 @@ export default function ChatScreen() {
 
     const { user, isGuest } = useAuth();
 
+    // Voice Recording state
+    const [recording, setRecording] = useState<Audio.Recording | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+
 
     // If a registered user logs in, load their past conversation
     useEffect(() => {
@@ -60,7 +65,7 @@ export default function ChatScreen() {
 
     const fetchChatHistory = async () => {
         try {
-            const response = await api.get('/chatbot/history');
+            const response = await api.get('chatbot/history');
             if (response.data.length > 0) {
                 // Transform server data into our message format
                 const historyMessages = response.data.flatMap((chat: any) => [
@@ -107,7 +112,7 @@ export default function ChatScreen() {
                 formData.append('image', startBlob, 'upload.jpg');
             }
 
-            const response = await api.post('/chatbot/upload', formData, {
+            const response = await api.post('chatbot/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -155,6 +160,80 @@ export default function ChatScreen() {
         }
     };
 
+    const startRecording = async () => {
+        try {
+            const permission = await Audio.requestPermissionsAsync();
+            if (permission.status !== 'granted') {
+                Alert.alert('Permission needed', 'Please grant microphone access to use voice input.');
+                return;
+            }
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
+            });
+            const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+            setRecording(recording);
+            setIsRecording(true);
+        } catch (err) {
+            console.error('Failed to start recording', err);
+            Alert.alert('Error', 'Could not start recording hook up.');
+        }
+    };
+
+    const stopRecordingAndSend = async () => {
+        if (!recording) return;
+        setRecording(null);
+        setIsRecording(false);
+        try {
+            await recording.stopAndUnloadAsync();
+            const uri = recording.getURI();
+            if (uri) {
+                await sendVoiceMessage(uri);
+            }
+        } catch (error) {
+            console.error('Failed to stop recording', error);
+        }
+    };
+
+    const sendVoiceMessage = async (uri: string) => {
+        setLoading(true);
+
+        try {
+            const formData = new FormData();
+
+            const uriParts = uri.split('.');
+            let fileExtension = uriParts[uriParts.length - 1];
+            if (fileExtension === 'm4a' || fileExtension === 'mp4') {
+                fileExtension = 'mp4';
+            }
+
+            formData.append('audio', {
+                uri,
+                name: `voice.${fileExtension}`,
+                type: `audio/${fileExtension}`
+            } as any);
+            formData.append('language', language || 'en');
+
+            const response = await api.post('chatbot/voice', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            // Put the text in the input box so the user can send it or edit it
+            if (response.data.transcription) {
+                setInputText(response.data.transcription);
+            }
+
+        } catch (error: any) {
+            console.error('Voice send error', error);
+            const errorMessage = error.response?.data?.error || t('failedVoice');
+            Alert.alert(t('error'), errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSend = async () => {
         // Prevent sending while uploading
         if (isUploading) return;
@@ -191,7 +270,7 @@ export default function ChatScreen() {
                 payload.image_path = currentServerPath;
             }
 
-            const response = await api.post('/chatbot/message', payload);
+            const response = await api.post('chatbot/message', payload);
 
             // 3. Show AI's response
             const botMessage: Message = {
@@ -203,8 +282,12 @@ export default function ChatScreen() {
 
             setMessages((prev) => [...prev, botMessage]);
         } catch (error: any) {
-            console.error('Chat error', error);
-            const errorMessage = error.response?.data?.error || t('chatbotError');
+            console.error('Chat error detailed:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
+            const errorMessage = error.response?.data?.error || `${t('chatbotError')} (${error.message})`;
 
             setMessages((prev) => [
                 ...prev,
@@ -250,7 +333,7 @@ export default function ChatScreen() {
                         styles.messageText,
                         item.sender === 'user' ? styles.userText : styles.botText
                     ]}>
-                        {item.text}
+                        {item.text.replace(/\\n/g, '\n')}
                     </Text>
                 ) : null}
                 <Text style={styles.timestampText}>
@@ -263,8 +346,8 @@ export default function ChatScreen() {
     return (
         <KeyboardAvoidingView
             style={styles.container}
-            behavior="padding"
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>{t('chatbotTitle')}</Text>
@@ -286,45 +369,25 @@ export default function ChatScreen() {
 
 
 
-            <View style={styles.inputContainer}>
-                {selectedMedia && (
-                    <View style={styles.previewContainer}>
-                        {selectedMedia.type === 'video' ? (
-                            <View style={styles.previewVideo}>
-                                <Video size={24} color="#666" />
-                            </View>
-                        ) : (
-                            <Image source={{ uri: selectedMedia.uri }} style={styles.previewImage} />
-                        )}
 
-                        {/* Upload Status Overlay */}
-                        {isUploading ? (
-                            <View style={styles.uploadOverlay}>
-                                <ActivityIndicator color="#fff" size="small" />
-                                <Text style={styles.uploadText}>{uploadProgress}%</Text>
-                            </View>
-                        ) : (
-                            <TouchableOpacity style={styles.removePreview} onPress={() => {
-                                setSelectedMedia(null);
-                                setServerFilePath(null);
-                            }}>
-                                <X size={16} color="#fff" />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                )}
+            <View style={styles.inputContainer}>
                 <View style={styles.inputArea}>
-                    <TouchableOpacity style={styles.attachButton} onPress={pickMedia} disabled={isUploading || loading}>
-                        <ImageIcon size={24} color={isUploading ? "#ccc" : "#666"} />
-                    </TouchableOpacity>
-                    <TextInput
-                        style={styles.input}
-                        placeholder={t('chatbotPlaceholder')}
-                        value={inputText}
-                        onChangeText={setInputText}
-                        multiline
-                        maxLength={500}
-                    />
+                    <View style={styles.inputWrapper}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder={t('chatbotPlaceholder')}
+                            value={inputText}
+                            onChangeText={setInputText}
+                            multiline
+                            maxLength={500}
+                        />
+                        <TouchableOpacity
+                            style={styles.micButton}
+                            onPress={isRecording ? stopRecordingAndSend : startRecording}
+                        >
+                            {isRecording ? <Square fill="#f44336" color="#f44336" size={20} /> : <Mic color="#666" size={20} />}
+                        </TouchableOpacity>
+                    </View>
                     <TouchableOpacity
                         style={[
                             styles.sendButton,
@@ -333,7 +396,7 @@ export default function ChatScreen() {
                         onPress={handleSend}
                         disabled={(!inputText.trim() && !selectedMedia) || loading || isUploading}
                     >
-                        {loading ? (
+                        {loading || isRecording ? (
                             <ActivityIndicator color="#fff" size="small" />
                         ) : isUploading ? (
                             <UploadCloud color="#fff" size={20} />
@@ -343,7 +406,7 @@ export default function ChatScreen() {
                     </TouchableOpacity>
                 </View>
             </View>
-        </KeyboardAvoidingView>
+        </KeyboardAvoidingView >
     );
 }
 
@@ -351,6 +414,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
+        paddingBottom: Platform.OS === 'ios' ? 0 : 20,
     },
     header: {
         paddingTop: 60,
@@ -475,75 +539,29 @@ const styles = StyleSheet.create({
         borderTopColor: '#eee',
         backgroundColor: '#fff',
     },
-    previewContainer: {
-        padding: 8,
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-        alignItems: 'center'
-    },
-    previewImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 8,
-    },
-    previewVideo: {
-        width: 60,
-        height: 60,
-        borderRadius: 8,
-        backgroundColor: '#eee',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    removePreview: {
-        position: 'absolute',
-        top: 4,
-        left: 60,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 10,
-        width: 20,
-        height: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    uploadOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 8,
-        margin: 8,
-        width: 60,
-        height: 60,
-    },
-    uploadText: {
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: 'bold',
-        marginTop: 4
-    },
     inputArea: {
         flexDirection: 'row',
         padding: 12,
         alignItems: 'center',
     },
-    attachButton: {
-        padding: 8,
+    inputWrapper: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f8f8f8',
+        borderRadius: 24,
         marginRight: 8,
+        paddingRight: 12,
     },
     input: {
         flex: 1,
-        backgroundColor: '#f8f8f8',
-        borderRadius: 24,
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        marginRight: 8,
+        paddingVertical: 10,
         fontSize: 15,
         maxHeight: 100,
+    },
+    micButton: {
+        padding: 4,
     },
     sendButton: {
         width: 44,
@@ -555,6 +573,9 @@ const styles = StyleSheet.create({
     },
     sendButtonDisabled: {
         backgroundColor: '#ccc',
+    },
+    recordingButton: {
+        backgroundColor: '#f44336', // Red color while recording
     },
     guestReminder: {
         flexDirection: 'row',

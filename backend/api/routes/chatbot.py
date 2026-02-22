@@ -25,12 +25,19 @@ except ImportError:
 chatbot_bp = Blueprint('chatbot', __name__)
 
 
+import logging
+
 # Configure Gemini AI if we have the API key
+print(f"DEBUG: GEMINI_AVAILABLE = {GEMINI_AVAILABLE}")
+print(f"DEBUG: API KEY = {'set' if settings.GOOGLE_GEMINI_API_KEY else 'missing'}")
+
 if GEMINI_AVAILABLE and settings.GOOGLE_GEMINI_API_KEY:
     try:
         genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
-    except:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        print("DEBUG: Gemini Initialized successfully!")
+    except Exception as e:
+        print(f"DEBUG: Gemini init failed: {e}")
         model = None
 else:
     model = None
@@ -50,29 +57,53 @@ def get_chatbot_response(message: str, language: str = 'en', context: str = '') 
     """
     
     # Tell the AI exactly how to behave - like a friendly expert farmer!
-    system_prompt = f"""You are an expert agricultural assistant specializing in crop disease management for Indian farmers.
+    system_prompt = f"""You are an advanced, expert agricultural AI assistant for Smart Crop Health, acting as a highly knowledgeable agronomy advisor for farmers.
 
-**Your Expertise:** Crop Diseases (Tomato, Rice, Wheat, Cotton, Grape, Maize, Potato), Treatment Methods, Prevention Strategies, Cost-Effective Solutions, Weather-Based Advice, Organic Farming.
+**Your Primary Goal**: 
+Provide highly structured, practical, and deeply actionable advice covering ALL aspects of farming, including but not limited to:
+- Crop Diseases & Pests
+- Soil Health & Fertilizers (NPK handling)
+- Irrigation & Water Management
+- Sowing, Harvesting & Crop Cycles
+- Weather Strategies & Organic Alternatives
 
-**Supported Crops & Common Diseases:**
+**Strict Formatting Rules Based on Query Type**:
 
-**Cotton:** Bacterial Blight (Streptocycline), Leaf Curl Virus (Whitefly control), Leaf Hopper (Imidacloprid).
-**Grape:** Black Rot (Mancozeb), Esca (Pruning), Leaf Blight (Copper Oxychloride).
-**Maize:** Common Rust (Mancozeb), Gray Leaf Spot (Propiconazole), Northern Leaf Blight (Azoxystrobin).
-**Potato:** Early Blight (Mancozeb 2g/L), Late Blight (Metalaxyl).
-**Rice:** Brown Spot, Hispa, Leaf Blast, Bacterial Blight.
-**Tomato:** Early Blight, Late Blight, Septoria, Bacterial Spot, Leaf Mold, Spider Mites, Viruses.
-**Wheat:** Brown Rust, Yellow Rust, Loose Smut.
+--- SCENARIO 1: Disease, Pest, or Treatment Queries ---
+If the farmer asks about treating a disease, pest, or failing crop (e.g., "treatment for tomato early blight severe stage", "bugs on my rice"), use this exact structure:
 
-**Treatment Guidelines:** Early Stage (0-30%): Organic treatments. Medium (30-60%): Organic+Chemical. Severe (60%+): Immediate chemical intervention.
+### 🔬 Diagnosis Focus
+* **Crop**: [Identified Crop, e.g., Tomato]
+* **Issue/Condition**: [Identified Disease/Pest]
+* **Stage Analyzed**: [Identify the stage from query, e.g., Severe]
 
-**Organic Alternatives:** Neem Oil (5ml/L), Trichoderma, Bacillus thuringiensis, Bordeaux Mixture (1%), Garlic-Chili spray.
+### 🩺 Step-by-Step Action Plan
+[Numbered list of immediate actions. **CRITICAL**: If the user says "severe" or "advanced", step 1 MUST be an immediate chemical/drastic intervention. If "early", emphasize organic/preventative care first.]
 
-**Prevention:** Crop rotation, proper spacing, drip irrigation, disease-free seeds, regular monitoring, remove infected plants, mulching.
+### 🧪 Recommended Treatments (Dosage & Application)
+* **[Chemical/Organic Name 1]**: [Dosage] (e.g., 2g/L of water). [Application instructions].
+* **[Chemical/Organic Name 2]**: [Dosage]. [Application instructions].
 
+### 🛡️ Future Prevention
+* [Bullet list of cultural practices: crop rotation, spacing, watering, etc.]
+
+--- SCENARIO 2: General Farming Inquiries ---
+If the farmer asks about soil, fertilizers, irrigation, seeds, or general farming practices (e.g., "how much urea for maize", "best soil for grapes", "when to harvest potatoes"):
+
+### 🌾 Agronomy Advice: [Topic Summary]
+
+**Key Recommendations:**
+1. [Actionable step or hard fact]
+2. [Actionable step or hard fact]
+
+**💡 Expert Tip**:
+[One highly useful insider tip regarding their question, e.g., a specific weather condition to watch out for or a natural hack.]
+
+---
+**Current Context (If any):**
 {context}
 
-**Response Guidelines:** Keep answers practical, provide specific dosages, include organic options, mention timing, warn about safety, suggest cost-effective solutions.
+**Tone**: Professional, authoritative yet empathetic, deeply practical. Never use giant dense paragraphs. ALWAYS use the structured Markdown above based on the scenario.
 """
     
     # If the AI model is ready, let's use it!
@@ -113,29 +144,29 @@ def get_fallback_response(message: str, language: str = 'en') -> str:
     """
     message_lower = message.lower()
     
-    
     # Identify keywords and pick the best pre-written response
     responses = {
         'en': {
-            'tomato_early_blight': "Early Blight in tomato shows brown spots with concentric rings. Treatment: Spray Mancozeb (2g/L) or Chlorothalonil (2ml/L) every 7-10 days. Organic: Neem oil (5ml/L). Prevention: Remove infected leaves, avoid overhead watering, maintain spacing.",
-            'tomato_late_blight': "Late Blight is serious! Water-soaked lesions on leaves. Immediate treatment: Metalaxyl + Mancozeb (2.5g/L) every 5-7 days. Remove severely infected plants. Avoid evening watering. Cost: ₹300-500 per acre per spray.",
-            'tomato_septoria': "Septoria Leaf Spot shows small circular spots. Treatment: Chlorothalonil (2ml/L) or Copper fungicide (3g/L) weekly. Organic: Bordeaux mixture (1%). Remove lower infected leaves.",
-            'rice_blast': "Rice Blast causes diamond-shaped lesions. Treatment: Tricyclazole (0.6g/L) at tillering and booting stages. Or Carbendazim (1g/L). Prevention: Avoid excessive nitrogen. Cost: ₹400-600/acre.",
-            'potato_early_blight': "Early Blight in Potato: Concentric rings on lower leaves. Treatment: Mancozeb (2g/L) or Chlorothalonil. Organic: Copper-based sprays. Harvest when vines are completely dead.",
-            'potato_late_blight': "Late Blight in Potato: Dark, water-soaked spots. Rapid spread! Treatment: Metalaxyl or Cymoxanil immediately. Destroy infected tubers. Avoid wet leaves.",
-            'wheat_rust': "Rust in Wheat: Yellow or brown pustules. Treatment: Propiconazole (1ml/L) or Tebuconazole. Resistant varieties are the best prevention.",
-            'maize_rust': "Common Rust in Maize: Cinnamon-brown pustules. Treatment: Mancozeb (2.5g/L) if severe. Usually, hybrids have resistance. Early planting helps.",
-            'cotton_blight': "Bacterial Blight in Cotton: Angular water-soaked spots. Treatment: Streptocycline (0.1g) + Copper Oxychloride (3g) per liter. Remove crop debris.",
-            'grape_rot': "Black Rot in Grape: Brown circular lesions. Treatment: Mancozeb or Myclobutanil. Remove mummified berries. Prune for better air circulation.",
-            'pesticide_general': "For specific pesticide recommendations, I need: 1) Which crop? 2) What symptoms? 3) Disease stage? Upload a crop image for accurate diagnosis and tailored pesticide suggestions with dosages.",
-            'cost': "Treatment costs vary: Early stage (₹200-400/acre), Medium (₹500-800/acre), Severe (₹1000-1500/acre). Includes pesticides and labor. Use cost calculator after diagnosis for detailed breakdown.",
-            'prevention': "Key prevention: 1) Crop rotation (3-4 years), 2) Disease-free seeds, 3) Proper spacing, 4) Drip irrigation, 5) Regular monitoring, 6) Remove infected plants, 7) Balanced fertilization.",
-            'organic': "Organic treatments: Neem oil (5ml/L) for pests, Trichoderma for soil diseases, Bacillus thuringiensis for caterpillars, Bordeaux mixture (1%) for fungal diseases, Garlic-chili spray for aphids. Apply weekly.",
-            'weather': "Weather impacts: High humidity + moderate temp (20-25°C) favors fungal diseases. Monsoon needs preventive sprays. Hot dry weather reduces fungal diseases but increases pests. Adjust based on forecasts.",
-            'default': "I'm your agricultural assistant! Ask about: 🌱 Crop diseases (Tomato, Rice, Wheat, Cotton, Grape, Maize, Potato), 💊 Pesticides, 💰 Costs, 🌿 Organic solutions, 🛡️ Prevention, 🌦️ Weather advice. Upload crop image for diagnosis!"
+            'tomato_early_blight': "### 🔬 Diagnosis Focus\\n* **Crop**: Tomato\\n* **Condition**: Early Blight\\n\\n### 🩺 Step-by-Step Action Plan\\n1. Remove infected lower leaves immediately.\\n2. Spray Mancozeb (2g/L) or Chlorothalonil every 7-10 days.\\n3. Limit overhead watering.",
+            'tomato_late_blight': "### 🔬 Diagnosis Focus\\n* **Crop**: Tomato\\n* **Condition**: Late Blight\\n\\n### 🩺 Step-by-Step Action Plan\\n1. **CRITICAL**: Immediate chemical intervention needed (Metalaxyl + Mancozeb 2.5g/L).\\n2. Destroy heavily infected plants to stop spread.\\n3. Avoid evening watering.",
+            'tomato_septoria': "### 🔬 Diagnosis Focus\\n* **Crop**: Tomato\\n* **Condition**: Septoria Leaf Spot\\n\\n### 🩺 Step-by-Step Action Plan\\n1. Apply Copper fungicide (3g/L) weekly.\\n2. Remove lower leaves.",
+            'rice_blast': "### 🔬 Diagnosis Focus\\n* **Crop**: Rice\\n* **Condition**: Leaf Blast\\n\\n### 🩺 Step-by-Step Action Plan\\n1. Spray Tricyclazole (0.6g/L) during tillering.\\n2. Avoid excessive nitrogen applications.",
+            'potato_early_blight': "### 🔬 Diagnosis Focus\\n* **Crop**: Potato\\n* **Condition**: Early Blight\\n\\n### 🩺 Step-by-Step Action Plan\\n1. Spray Mancozeb (2g/L).\\n2. For organic, use Copper-based sprays.\\n3. Harvest only when vines are dead.",
+            'potato_late_blight': "### 🔬 Diagnosis Focus\\n* **Crop**: Potato\\n* **Condition**: Late Blight (Water Soaked Spots)\\n\\n### 🩺 Step-by-Step Action Plan\\n1. **CRITICAL**: Immediate application of Cymoxanil or Metalaxyl.\\n2. Destroy infected tubers immediately.",
+            'potato_wilt': "### 🔬 Diagnosis Focus\\n* **Crop**: Potato\\n* **Condition**: Bacterial Wilt\\n\\n### 🩺 Step-by-Step Action Plan\\n1. There is no chemical cure. Uproot and burn infected plants.\\n2. Practice 3-year crop rotation.",
+            'maize_rust': "### 🔬 Diagnosis Focus\\n* **Crop**: Maize\\n* **Condition**: Common Rust\\n\\n### 🩺 Step-by-Step Action Plan\\n1. If severe, apply Mancozeb (2.5g/L).\\n2. Plant resistant hybrids next season.",
+            'maize_gls': "### 🔬 Diagnosis Focus\\n* **Crop**: Maize\\n* **Condition**: Gray Leaf Spot\\n\\n### 🩺 Step-by-Step Action Plan\\n1. Apply Propiconazole or Azoxystrobin fungicides.\\n2. Practice crop rotation and tillage.",
+            'grape_rot': "### 🔬 Diagnosis Focus\\n* **Crop**: Grape\\n* **Condition**: Black Rot\\n\\n### 🩺 Step-by-Step Action Plan\\n1. Spray Mancozeb or Myclobutanil.\\n2. Prune vines for air circulation and remove mummified berries.",
+            'cotton_blight': "### 🔬 Diagnosis Focus\\n* **Crop**: Cotton\\n* **Condition**: Bacterial Blight\\n\\n### 🩺 Step-by-Step Action Plan\\n1. Spray Copper Oxychloride (3g/L) + Streptocycline (0.1g/L).\\n2. Use acid-delinted seeds next season.",
+            'wheat_rust': "### 🔬 Diagnosis Focus\\n* **Crop**: Wheat\\n* **Condition**: Wheat Rust\\n\\n### 🩺 Step-by-Step Action Plan\\n1. Spray Propiconazole (1ml/L) immediately.\\n2. Ensure proper balanced NPK fertilization.",
+            'pesticide_general': "### 🌾 Agronomy Advice: Pesticides\\n\\n**Key Recommendations:**\\n1. Always wear protective gear when spraying.\\n2. Apply chemicals in the early morning or late evening.\\n\\n**💡 Expert Tip**: Please provide your specific crop and symptoms so I can recommend the exact dosage!",
+            'cost': "### 🌾 Agronomy Advice: Treatment Costs\\n\\n**Key Estimates:**\\n1. Early Stage Prevention: ₹200-400/acre.\\n2. Severe Chemical Intervention: ₹1000-1500/acre.\\n\\n**💡 Expert Tip**: Catching diseases early with organic sprays is heavily cost-effective compared to late-stage chemical recovery.",
+            'prevention': "### 🌾 Agronomy Advice: Disease Prevention\\n\\n**Key Recommendations:**\\n1. Practice 3-4 year crop rotation.\\n2. Use drip irrigation to keep foliage dry.\\n\\n**💡 Expert Tip**: Air circulation is key. Proper plant spacing prevents 50% of fungal problems!",
+            'organic': "### 🌾 Agronomy Advice: Organic Pesticides & Solutions\\n\\n**Key Recommendations:**\\n1. Neem Oil (5ml/L) is excellent for general pest control.\\n2. Bordeaux Mixture (1%) is a strong organic fungicide.\\n\\n**💡 Expert Tip**: Bacillus thuringiensis (Bt) is perfect for organic caterpillar control!",
+            'weather': "### 🌾 Agronomy Advice: Weather Strategies\\n\\n**Key Recommendations:**\\n1. High Humidity (Monsoon): Apply preventive fungal sprays (e.g., Mancozeb/Copper).\\n2. Hot & Dry: Fungal risk drops, but watch for spider mites.\\n\\n**💡 Expert Tip**: Never apply pesticides right before rain to avoid chemical run-off.",
+            'default': "### 🌾 Smart Crop Health Assistant\\n\\nI'm ready to help you with:\\n* **Crop Diseases**: Tomato, Potato, Rice, Maize, Grape, Wheat, Cotton.\\n* **General Advice**: Organic solutions, weather strategies, and treatment costs.\\n\\nHow can I support your farm today?"
         }
     }
-    
     
     # Logic to match user keywords to the right topic
     if 'tomato' in message_lower:
@@ -143,30 +174,35 @@ def get_fallback_response(message: str, language: str = 'en') -> str:
             response = responses['en']['tomato_early_blight']
         elif any(word in message_lower for word in ['late blight', 'water soaked']):
             response = responses['en']['tomato_late_blight']
-        elif any(word in message_lower for word in ['septoria', 'small spot']):
+        elif 'septoria' in message_lower:
             response = responses['en']['tomato_septoria']
         else:
             response = responses['en']['pesticide_general']
-    elif 'rice' in message_lower and 'blast' in message_lower:
+    elif 'rice' in message_lower and ('blast' in message_lower or 'disease' in message_lower):
         response = responses['en']['rice_blast']
     elif 'potato' in message_lower:
-        if any(word in message_lower for word in ['early', 'ring', 'concentric']):
+        if any(word in message_lower for word in ['early']):
             response = responses['en']['potato_early_blight']
-        elif any(word in message_lower for word in ['late', 'water soaked', 'dark spot']):
+        elif any(word in message_lower for word in ['late', 'water soaked', 'dark spot', 'dark water']):
             response = responses['en']['potato_late_blight']
+        elif any(word in message_lower for word in ['wilt', 'bacterial']):
+            response = responses['en']['potato_wilt']
         else:
             response = responses['en']['pesticide_general']
-    elif 'wheat' in message_lower and 'rust' in message_lower:
-        response = responses['en']['wheat_rust']
-    elif 'maize' in message_lower and 'rust' in message_lower:
-        response = responses['en']['maize_rust']
-    elif 'cotton' in message_lower and 'blight' in message_lower:
+    elif 'maize' in message_lower or 'corn' in message_lower:
+        if 'rust' in message_lower:
+            response = responses['en']['maize_rust']
+        elif any(word in message_lower for word in ['gray', 'grey', 'spot']):
+            response = responses['en']['maize_gls']
+        else:
+            response = responses['en']['pesticide_general']
+    elif 'cotton' in message_lower:
         response = responses['en']['cotton_blight']
+    elif 'wheat' in message_lower:
+        response = responses['en']['wheat_rust']
     elif 'grape' in message_lower and 'rot' in message_lower:
         response = responses['en']['grape_rot']
-    elif any(word in message_lower for word in ['pesticide', 'spray', 'chemical', 'fungicide']):
-        response = responses['en']['pesticide_general']
-    elif any(word in message_lower for word in ['cost', 'price', 'money', 'expensive', 'rupee']):
+    elif any(word in message_lower for word in ['cost', 'price', 'money', 'expensive', 'rupee', 'how much']):
         response = responses['en']['cost']
     elif any(word in message_lower for word in ['prevent', 'prevention', 'avoid', 'stop']):
         response = responses['en']['prevention']
@@ -174,9 +210,10 @@ def get_fallback_response(message: str, language: str = 'en') -> str:
         response = responses['en']['organic']
     elif any(word in message_lower for word in ['weather', 'rain', 'monsoon', 'humidity']):
         response = responses['en']['weather']
+    elif any(word in message_lower for word in ['pesticide', 'spray', 'chemical', 'fungicide', 'medicine', 'cure', 'treatment']):
+        response = responses['en']['pesticide_general']
     else:
         response = responses['en']['default']
-    
     
     # Translate the backup response if needed
     if language != 'en':
@@ -308,4 +345,65 @@ def get_chat_history():
         return jsonify({'history': chat_list}), 200
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@chatbot_bp.route('/voice', methods=['POST'])
+def process_voice():
+    """Receive an audio file, send to Gemini, and return the chatbot response"""
+    try:
+        from werkzeug.utils import secure_filename
+        
+        auth_header = request.headers.get('Authorization')
+        user_id = None
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+            token_data = verify_token(token)
+            if token_data['valid']:
+                user_id = token_data['user_id']
+                
+        if 'audio' not in request.files:
+            return jsonify({'error': 'No audio file provided'}), 400
+            
+        file = request.files['audio']
+        if file.filename == '':
+            return jsonify({'error': 'Empty audio file'}), 400
+            
+        language = request.form.get('language', 'en')
+        
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(settings.UPLOAD_FOLDER, f"temp_{int(datetime.datetime.utcnow().timestamp())}_{filename}")
+        file.save(temp_path)
+        
+        try:
+            if not GEMINI_AVAILABLE or not settings.GOOGLE_GEMINI_API_KEY:
+                return jsonify({'error': 'AI configuration missing for voice.'}), 503
+                
+            # Read the file directly into memory
+            with open(temp_path, "rb") as f:
+                audio_data = f.read()
+            
+            prompt = f"Transcribe this audio precisely into text. The language is {language}. Do not answer the user's question, just return the transcribed text."
+            stt_model = genai.GenerativeModel('gemini-2.5-flash')
+            
+            response = stt_model.generate_content([
+                prompt,
+                {
+                    "mime_type": "audio/mp4",
+                    "data": audio_data
+                }
+            ])
+            
+            transcription = response.text.strip()
+            
+            return jsonify({
+                'transcription': transcription,
+                'language': language
+            }), 200
+            
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+                
+    except Exception as e:
+        print(f"Voice Error: {str(e)}")
         return jsonify({'error': str(e)}), 500

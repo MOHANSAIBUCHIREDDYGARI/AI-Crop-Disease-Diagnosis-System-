@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
 
-CROP_NAMES = ["rice", "wheat", "tomato", "cotton"]
+CROP_NAMES = ["rice", "tomato", "grape", "maize", "potato"]
 
 def predict_crop(image_path, model_path):
     model = load_model(model_path)

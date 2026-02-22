@@ -42,7 +42,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
                 }
 
                 console.log('Fetching dynamic translations for:', language);
-                const response = await api.get(`/user/translations?lang=${language}`);
+                const response = await api.get(`user/translations?lang=${language}`);
                 if (response.data) {
                     // Update our dictionary with new words
                     setDynamicTranslations(response.data);

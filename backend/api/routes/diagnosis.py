@@ -90,7 +90,7 @@ def detect_disease():
         print(f"DEBUG: Crop value: '{crop}'")
         if not crop or crop not in ['grape', 'maize', 'potato', 'rice', 'tomato']:
             print(f"DEBUG: Invalid crop: '{crop}'")
-            return jsonify({'error': 'Valid crop type required (tomato, cotton)'}), 400
+            return jsonify({'error': 'Valid crop type required (tomato, rice, potato)'}), 400
         
         
         # Get location for weather-based advice (optional)
@@ -295,6 +295,7 @@ def detect_disease():
                     'image_path': filepath,
                     'latitude': latitude,
                     'longitude': longitude,
+                    'language': language, # Store the language used at time of diagnosis
                     'created_at': datetime.datetime.utcnow(),
                     
                     # Store pesticides in the same document (NoSQL Advantage!)
@@ -385,10 +386,15 @@ def get_history():
         users_collection = db.get_collection('users')
         user = users_collection.find_one({'_id': ObjectId(user_id)})
         if user:
-            language = user.get('preferred_language', 'en')
+            current_pref_language = user.get('preferred_language', 'en')
+        else:
+            current_pref_language = 'en'
 
         history_list = []
         for record in history:
+            # Use the language stored at diagnosis time, fallback to English if missing
+            record_language = record.get('language', 'en')
+            
             item = {
                 'id': str(record['_id']),
                 'crop': record['crop'],
@@ -396,13 +402,13 @@ def get_history():
                 'confidence': record['confidence'],
                 'severity_percent': record['severity_percent'],
                 'stage': record['stage'],
-                'created_at': record['created_at']
+                'created_at': record['created_at'],
+                'language': record_language
             }
             
-            
-            # Translate each record so it shows up in the user's language
-            if language != 'en':
-                translated = translate_diagnosis_result(item, language)
+            # Translate record so it reflects the ORIGINAL diagnosis language (Sticky)
+            if record_language != 'en':
+                translated = translate_diagnosis_result(item, record_language)
                 
                 if 'disease_local' in translated:
                     item['disease'] = translated['disease_local']
@@ -484,10 +490,9 @@ def get_diagnosis_details(diagnosis_id):
                     'organic_alternatives': disease_info.get('organic_alternatives', '')
                 }
                 
-                # Fetch user language preference and translate
-                users_collection = db.get_collection('users')
-                user = users_collection.find_one({'_id': ObjectId(user_id)})
-                language = user.get('preferred_language', 'en') if user else 'en'
+                # Sticky Language: Use the language saved with the diagnosis
+                language = diagnosis.get('language', 'en')
+                
                 disease_data = translate_disease_info(disease_data, language)
             else:
                 language = 'en'

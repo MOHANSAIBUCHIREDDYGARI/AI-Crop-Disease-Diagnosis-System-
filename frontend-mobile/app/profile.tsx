@@ -71,7 +71,7 @@ export default function ProfileScreen() {
 
             if (!isGuest && user) {
                 console.log('Syncing language with backend...');
-                await api.put('/user/language', { language: code });
+                await api.put('user/language', { language: code });
 
                 await updateUser({ preferred_language: code });
                 console.log('Backend sync successful');
@@ -155,7 +155,10 @@ export default function ProfileScreen() {
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('supportLegal')}</Text>
 
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => router.push('/help')}
+                >
                     <View style={[styles.menuIconCircle, { backgroundColor: '#f5f5f5' }]}>
                         <HelpCircle size={20} color="#666" />
                     </View>
@@ -165,7 +168,10 @@ export default function ProfileScreen() {
                     <ChevronRight size={20} color="#ccc" />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => router.push('/privacy')}
+                >
                     <View style={[styles.menuIconCircle, { backgroundColor: '#f5f5f5' }]}>
                         <Shield size={20} color="#666" />
                     </View>
