@@ -7,19 +7,35 @@ import { useLanguage } from '../context/LanguageContext';
 interface ProgressionIndicatorProps {
     severity: number;
     stage?: string;
+    labels?: { [key: string]: string };
 }
 
 /**
  * Shows how far the disease has spread using a progress bar.
  * Also changes color like a traffic light: Green (Early) -> Yellow (Moderate) -> Red (Severe).
  */
-const ProgressionIndicator: React.FC<ProgressionIndicatorProps> = ({ severity, stage }) => {
+const ProgressionIndicator: React.FC<ProgressionIndicatorProps> = ({ severity, stage, labels }) => {
     const { t } = useLanguage();
 
     const getSeverityLevel = () => {
-        if (severity < 30) return { level: t('stage_early'), color: '#4caf50', icon: AlertCircle, bg: '#e8f5e9' };
-        if (severity < 60) return { level: t('stage_moderate'), color: '#ff9800', icon: AlertTriangle, bg: '#fff3e0' };
-        return { level: t('stage_severe'), color: '#d32f2f', icon: AlertOctagon, bg: '#ffebee' };
+        if (severity < 30) return {
+            level: labels?.stage_early || t('stage_early'),
+            color: '#4caf50',
+            icon: AlertCircle,
+            bg: '#e8f5e9'
+        };
+        if (severity < 60) return {
+            level: labels?.stage_moderate || t('stage_moderate'),
+            color: '#ff9800',
+            icon: AlertTriangle,
+            bg: '#fff3e0'
+        };
+        return {
+            level: labels?.stage_severe || t('stage_severe'),
+            color: '#d32f2f',
+            icon: AlertOctagon,
+            bg: '#ffebee'
+        };
     };
 
     const severityInfo = getSeverityLevel();
@@ -30,7 +46,7 @@ const ProgressionIndicator: React.FC<ProgressionIndicatorProps> = ({ severity, s
             <View style={styles.header}>
                 <Icon size={24} color={severityInfo.color} />
                 <View style={styles.headerText}>
-                    <Text style={styles.title}>{t('diseaseProgression')}</Text>
+                    <Text style={styles.title}>{labels?.diseaseProgression || t('diseaseProgression')}</Text>
                     <Text style={[styles.level, { color: severityInfo.color }]}>
                         {severityInfo.level}
                     </Text>
@@ -56,15 +72,15 @@ const ProgressionIndicator: React.FC<ProgressionIndicatorProps> = ({ severity, s
             {/* Helpful message based on severity */}
             <View style={[styles.infoCard, { backgroundColor: severityInfo.bg }]}>
                 <Text style={[styles.infoText, { color: severityInfo.color }]}>
-                    {severity < 30 && t('earlyDetectionMsg')}
-                    {severity >= 30 && severity < 60 && t('moderateInfectionMsg')}
-                    {severity >= 60 && t('severeInfectionMsg')}
+                    {severity < 30 && (labels?.earlyDetectionMsg || t('earlyDetectionMsg'))}
+                    {severity >= 30 && severity < 60 && (labels?.moderateInfectionMsg || t('moderateInfectionMsg'))}
+                    {severity >= 60 && (labels?.severeInfectionMsg || t('severeInfectionMsg'))}
                 </Text>
             </View>
 
             {stage && (
                 <View style={styles.stageInfo}>
-                    <Text style={styles.stageLabel}>{t('currentStage')}</Text>
+                    <Text style={styles.stageLabel}>{labels?.currentStage || t('currentStage')}</Text>
                     <Text style={styles.stageValue}>{stage}</Text>
                 </View>
             )}

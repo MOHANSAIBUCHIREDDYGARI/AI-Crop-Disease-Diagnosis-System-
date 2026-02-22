@@ -26,8 +26,9 @@ class Settings:
     MODEL_MAP = {
         "tomato": os.path.join(MODELS_PATH, "tomato_disease_model.h5"),
         "rice": os.path.join(MODELS_PATH, "rice_disease_model.h5"),
-        "wheat": os.path.join(MODELS_PATH, "wheat_disease_model.h5"),
-        "cotton": os.path.join(MODELS_PATH, "cotton_disease_model.h5")
+        "grape": os.path.join(MODELS_PATH, "grape_disease_model.h5"),
+        "maize": os.path.join(MODELS_PATH, "maize_disease_model.h5"),
+        "potato": os.path.join(MODELS_PATH, "potato_disease_model.h5")
     }
     
     # The list of possible diseases our AI can recognize for each crop
@@ -44,9 +45,7 @@ class Settings:
             "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
             "Tomato___Tomato_mosaic_virus"
         ],
-        "rice": ["Healthy", "BrownSpot", "Hispa", "LeafBlast"],
-        "wheat": ["Healthy", "Brown rust", "Yellow rust", "Loose Smut"],
-        "cotton": ["Healthy", "Bacterial Blight", "Curl Virus", "Leaf Hopper Jassids"]
+        "rice": ["Healthy", "BrownSpot", "Hispa", "LeafBlast"]
     }
     
     # Languages we speak

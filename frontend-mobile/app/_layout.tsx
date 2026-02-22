@@ -46,6 +46,8 @@ function RootLayoutContent() {
         {/* Feature Screens */}
         <Stack.Screen name="results" options={{ title: t('diagnosisResults') || 'Diagnosis Results', headerShown: true }} />
         <Stack.Screen name="profile" options={{ title: t('profile') || 'Profile', headerShown: true }} />
+        <Stack.Screen name="help" options={{ title: t('helpCenter') || 'Help Center', headerShown: true, presentation: 'modal' }} />
+        <Stack.Screen name="privacy" options={{ title: t('privacyPolicy') || 'Privacy Policy', headerShown: true, presentation: 'modal' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

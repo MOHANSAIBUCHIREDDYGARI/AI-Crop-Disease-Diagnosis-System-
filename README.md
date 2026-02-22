@@ -1,4 +1,4 @@
-AI Crop Diagnosis System
+Smart Crop Health System
 ========================
 
 Table of Contents
@@ -22,7 +22,7 @@ Table of Contents
 Intro
 -----
 
-**AI Crop Diagnosis System** allows farmers to quickly detect diseases in crops like Grape, Maize, Potato, Rice, and Tomato using deep learning models via a mobile app and web API.
+**Smart Crop Health System** allows farmers to quickly detect diseases in crops like Grape, Maize, Potato, Rice, and Tomato using deep learning models via a mobile app and web API.
 
 Example:
 
@@ -60,7 +60,7 @@ The system is built using:
 Installing and Updating
 -----------------------
 
-To install or update the AI Crop Diagnosis System, you need to set up both the backend and frontend components.
+To install or update the Smart Crop Health System, you need to set up both the backend and frontend components.
 
 ### Backend Setup
 

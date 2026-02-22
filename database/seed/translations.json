@@ -1,6 +1,6 @@
 {
     "en": {
-        "app_name": "AI Crop Diagnosis",
+        "app_name": "Smart Crop Health",
         "welcome": "Welcome",
         "login": "Login",
         "register": "Register",
@@ -32,7 +32,7 @@
         "logout": "Logout"
     },
     "hi": {
-        "app_name": "एआई फसल निदान",
+        "app_name": "स्मार्ट फसल स्वास्थ्य",
         "welcome": "स्वागत है",
         "login": "लॉगिन",
         "register": "पंजीकरण",
@@ -64,7 +64,7 @@
         "logout": "लॉगआउट"
     },
     "te": {
-        "app_name": "AI పంట నిర్ధారణ",
+        "app_name": "స్మార్ట్ క్రాప్ హెల్త్",
         "welcome": "స్వాగతం",
         "login": "లాగిన్",
         "register": "నమోదు",
@@ -96,7 +96,7 @@
         "logout": "లాగ్అవుట్"
     },
     "ta": {
-        "app_name": "AI பயிர் கண்டறிதல்",
+        "app_name": "ஸ்மார்ட் க்ராப் ஹெல்த்",
         "welcome": "வரவேற்பு",
         "login": "உள்நுழைவு",
         "register": "பதிவு",
