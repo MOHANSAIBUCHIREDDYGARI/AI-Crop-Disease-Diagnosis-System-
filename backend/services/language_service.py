@@ -1,5 +1,7 @@
 import json
 import os
+from typing import Dict
+from deep_translator import GoogleTranslator
 
 # Cache for translations to reduce API calls
 # A simple memory to store words we've already translated so we don't ask Google again
@@ -47,11 +49,8 @@ def translate_text(text: str, target_language: str = 'en', source_language: str 
         return translation_cache[cache_key]
     
     try:
-        # Check if texts is empty
-        if not texts:
-            return {}
-            
-        translated_texts = translator.translate_batch(texts)
+        translator = GoogleTranslator(source=source_language, target=target_language)
+        translated_text = translator.translate(text)
         
         if not translated_text:
              print(f"DEBUG: Translation returned empty for '{text}' to {target_language}")
@@ -74,12 +73,6 @@ def translate_batch(texts, target_language):
     if not texts or target_language == 'en':
         return texts
 
-    cache = load_cache()
-    if target_language not in cache:
-        cache[target_language] = {}
-    
-    language_cache = cache[target_language]
-    missing_texts = set()
     results = {}
     
     try:

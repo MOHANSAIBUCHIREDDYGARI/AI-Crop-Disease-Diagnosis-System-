@@ -84,3 +84,24 @@ dataset/
 backend/uploads/
 backend/voice_outputs/
 
+# Translation generation scripts
+generate_translations*.py
+translate_*.py
+inject_privacy_translations.py
+add_translations.py
+explore_translations.txt
+
+# Test files and outputs
+test_*.py
+*test_output.txt
+verification_output.txt
+test_*.ps1
+test_*.bat
+test.mp3
+test.http
+
+# Translation and Cache JSON files
+translated_privacy.json
+translated_privacy.txt
+translations_local.json
+translations_output.json

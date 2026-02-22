@@ -10,8 +10,8 @@ export default function HelpScreen() {
 
     return (
         <View style={styles.container}>
-            <Stack.Screen options={{ 
-                headerShown: true, 
+            <Stack.Screen options={{
+                headerShown: true,
                 title: t('helpCenter'),
                 headerLeft: () => (
                     <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10 }}>
@@ -19,48 +19,48 @@ export default function HelpScreen() {
                     </TouchableOpacity>
                 )
             }} />
-            
+
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
                     <View style={styles.iconCircle}>
                         <HelpCircle size={40} color="#4caf50" />
                     </View>
-                    <Text style={styles.title}>Welcome to Help Center</Text>
-                    <Text style={styles.subtitle}>How can we help you today?</Text>
+                    <Text style={styles.title}>{t('helpWelcome')}</Text>
+                    <Text style={styles.subtitle}>{t('helpSubtitle')}</Text>
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Quick Start Guide</Text>
-                    
+                    <Text style={styles.sectionTitle}>{t('helpQuickStart')}</Text>
+
                     <View style={styles.guideItem}>
                         <Camera size={24} color="#4caf50" />
                         <View style={styles.guideText}>
-                            <Text style={styles.guideLabel}>How to scan</Text>
-                            <Text style={styles.guideDesc}>Point your camera at a crop leaf and tap 'Scan'. Ensure the leaf fills the frame.</Text>
+                            <Text style={styles.guideLabel}>{t('helpScanTitle')}</Text>
+                            <Text style={styles.guideDesc}>{t('helpScanDesc')}</Text>
                         </View>
                     </View>
 
                     <View style={styles.guideItem}>
                         <Zap size={24} color="#4caf50" />
                         <View style={styles.guideText}>
-                            <Text style={styles.guideLabel}>Best Results</Text>
-                            <Text style={styles.guideDesc}>Ensure good natural lighting and a clear focus for maximum accuracy.</Text>
+                            <Text style={styles.guideLabel}>{t('helpBestResultsTitle')}</Text>
+                            <Text style={styles.guideDesc}>{t('helpBestResultsDesc')}</Text>
                         </View>
                     </View>
 
                     <View style={styles.guideItem}>
                         <Info size={24} color="#4caf50" />
                         <View style={styles.guideText}>
-                            <Text style={styles.guideLabel}>Supported Crops</Text>
-                            <Text style={styles.guideDesc}>Our AI currently supports Tomato, Rice, Potato, Grape, and Maize.</Text>
+                            <Text style={styles.guideLabel}>{t('helpSupportedCropsTitle')}</Text>
+                            <Text style={styles.guideDesc}>{t('helpSupportedCropsDesc')}</Text>
                         </View>
                     </View>
                 </View>
 
                 <View style={styles.contactCard}>
                     <Mail size={24} color="#fff" />
-                    <Text style={styles.contactTitle}>Still need help?</Text>
-                    <Text style={styles.contactText}>Contact our support team at:</Text>
+                    <Text style={styles.contactTitle}>{t('helpContactTitle')}</Text>
+                    <Text style={styles.contactText}>{t('helpContactDesc')}</Text>
                     <Text style={styles.contactEmail}>support@smartcrophealth.com</Text>
                 </View>
             </ScrollView>
