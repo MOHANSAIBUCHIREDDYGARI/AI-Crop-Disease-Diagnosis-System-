@@ -8,7 +8,7 @@ import { Camera as CameraIcon, Image as ImageIcon, X, ShieldAlert, Sun, CloudRai
 
 // --- Internal Imports ---
 import { useAuth } from '../../context/AuthContext';
-import api from '../../services/api';
+import api, { API_URL } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { T } from '../../components/ui/T';
 import { addToLocalHistory } from '../../services/localHistory';
@@ -355,14 +355,18 @@ export default function DashboardScreen() {
           webFormData.append('longitude', location.longitude.toString());
         }
 
-        const apiUrl = 'http://localhost:5000/api/diagnosis/detect';
+        const apiUrl = `${API_URL}diagnosis/detect`;
         const { getItem } = await import('../../services/storage');
         const token = await getItem('userToken');
 
+        console.log('DEBUG: Sending web request to API...', apiUrl);
         const fetchResponse = await fetch(apiUrl, {
           method: 'POST',
           body: webFormData,
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          headers: {
+            'Bypass-Tunnel-Reminder': 'true',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
         });
 
         if (!fetchResponse.ok) {
@@ -381,7 +385,7 @@ export default function DashboardScreen() {
         // --- Mobile Logic ---
         const mobileFormData = new FormData();
         const uriParts = image.split('.');
-        const fileType = uriParts[uriParts.length - 1];
+        const fileType = uriParts[uriParts.length - 1] === 'jpg' ? 'jpeg' : uriParts[uriParts.length - 1];
 
         mobileFormData.append('image', {
           uri: image,
@@ -396,12 +400,35 @@ export default function DashboardScreen() {
           mobileFormData.append('longitude', location.longitude.toString());
         }
 
-        console.log('DEBUG: Sending mobile request to API...');
-        response = await api.post('diagnosis/detect', mobileFormData, {
-          transformRequest: (data, headers) => {
-            return data;
-          }
+        const apiUrl = `${API_URL}diagnosis/detect`;
+        const { getItem } = await import('../../services/storage');
+        const token = await getItem('userToken');
+
+        console.log('DEBUG: Sending mobile request to API using fetch...', apiUrl);
+
+        const fetchResponse = await fetch(apiUrl, {
+          method: 'POST',
+          body: mobileFormData,
+          headers: {
+            'Accept': 'application/json',
+            'Bypass-Tunnel-Reminder': 'true',
+            // DO NOT set Content-Type header manually when using FormData with fetch in React Native! 
+            // The browser/React Native will automatically set it with the correct boundary.
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
         });
+
+        if (!fetchResponse.ok) {
+          const errorData = await fetchResponse.json().catch(() => ({ error: 'Server returned ' + fetchResponse.status }));
+          const customError: any = new Error(errorData.error || errorData.message || 'Failed to detect disease');
+          customError.response = {
+            status: fetchResponse.status,
+            data: errorData
+          };
+          throw customError;
+        }
+
+        response = { data: await fetchResponse.json() };
       }
 
       // --- Success! ---
@@ -436,7 +463,16 @@ export default function DashboardScreen() {
     } catch (error: any) {
       console.log('=== Diagnosis Error Debug ===');
       console.log('Error object:', error);
-      // ... debug logs ...
+      console.log('Error message:', error.message);
+      console.log('Error code:', error.code);
+      console.log('API URL used:', API_URL);
+      if (error.response) {
+        console.log('Response status:', error.response.status);
+        console.log('Response data:', JSON.stringify(error.response.data));
+      } else {
+        console.log('No response received - likely a network/connection issue');
+        console.log('Is network error:', error.code === 'ERR_NETWORK');
+      }
 
       // --- Error Handling ---
       const errData = error.response?.data;
@@ -450,6 +486,13 @@ export default function DashboardScreen() {
             { text: t('retakePhoto'), onPress: () => setImage(null), style: 'default' },
             { text: t('cancel'), style: 'cancel' }
           ]
+        );
+      } else if (!error.response) {
+        // Pure network error - show more helpful message
+        console.log('❌ Network error - cannot reach backend at', API_URL);
+        Alert.alert(
+          t('error'),
+          `Cannot connect to server.\nTrying: ${API_URL}\n\nPlease ensure the server is running.`
         );
       } else {
         // This is a "bad" error - something actually broke.
