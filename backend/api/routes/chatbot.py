@@ -76,12 +76,13 @@ def get_database_knowledge(message: str) -> str:
     # We try to match any words from the user's message
     words = [w for w in message_lower.split() if len(w) > 3]
     if words:
-        placeholders = ', '.join(['?' for _ in words])
-        # Find diseases that match any of the keywords
-        disease_query = f"SELECT * FROM diseases WHERE " + " OR ".join([f"disease_name LIKE ?" for _ in words])
-        params = tuple([f"%{w}%" for w in words])
+        # Create a regex representing any of these words
+        regex_pattern = "|".join(words)
         
-        disease_results = db.execute_query(disease_query, params)
+        disease_results = db.execute_query(
+            collection='diseases',
+            mongo_query={'disease_name': {'$regex': regex_pattern, '$options': 'i'}}
+        )
         for row in disease_results:
             info = (
                 f"### {row['crop']} - {row['disease_name']}\n"
@@ -92,14 +93,15 @@ def get_database_knowledge(message: str) -> str:
             knowledge.append(info)
             
             # 2. For each found disease, find recommended pesticides
-            pesticide_query = "SELECT * FROM pesticides WHERE target_diseases LIKE ?"
-            p_params = (f"%{row['disease_name']}%",)
-            p_results = db.execute_query(pesticide_query, p_params)
+            p_results = db.execute_query(
+                collection='pesticides',
+                mongo_query={'target_diseases': {'$regex': row['disease_name'], '$options': 'i'}}
+            )
             
             if p_results:
                 knowledge.append("- Recommended Treatments (from Database):")
                 for p in p_results:
-                    org = "(ORGANIC)" if p['is_organic'] else ""
+                    org = "(ORGANIC)" if p.get('is_organic') else ""
                     pinfo = (
                         f"  * {p['name']} {org}: {p['dosage_per_acre']} every {p['frequency']}. "
                         f"Approx Cost: ₹{p['cost_per_liter']}/L. Warnings: {p['warnings']}"
@@ -592,10 +594,17 @@ def send_message():
             if token_data['valid']:
                 user_id = token_data['user_id']
                 
+                from bson.objectid import ObjectId
+                from bson.errors import InvalidId
+                try:
+                    query = {'_id': ObjectId(user_id)}
+                except InvalidId:
+                    query = {'id': user_id}
+
                 # If logged in, use their preferred language
-                user = db.execute_query('SELECT preferred_language FROM users WHERE id = ?', (user_id,))
+                user = db.execute_query(collection='users', mongo_query=query)
                 if user:
-                    language = user[0]['preferred_language']
+                    language = user[0].get('preferred_language', 'en')
         
         data = request.get_json()
         message = data.get('message', '').strip()
@@ -629,12 +638,12 @@ def send_message():
             
             # Or fetch their latest diagnosis from history
             recent_diagnosis = db.execute_query(
-                '''SELECT crop, disease, severity_percent FROM diagnosis_history 
-                   WHERE user_id = ? ORDER BY created_at DESC LIMIT 1''',
-                (user_id,)
+                collection='diagnosis_history',
+                mongo_query={'user_id': user_id}
             )
             
             if recent_diagnosis:
+                recent_diagnosis.sort(key=lambda x: x.get('created_at', datetime.datetime.min), reverse=True)
                 d = recent_diagnosis[0]
                 context = f"User's recent diagnosis: {d['crop']} with {d['disease']} at {d['severity_percent']}% severity."
         
@@ -753,9 +762,14 @@ def send_message():
         # Save the conversation if the user is logged in
         if user_id:
             db.execute_insert(
-                '''INSERT INTO chatbot_conversations (user_id, message, response, language)
-                   VALUES (?, ?, ?, ?)''',
-                (user_id, message, response_text, language)
+                collection='chatbot_conversations',
+                document={
+                    'user_id': user_id,
+                    'message': message,
+                    'response': response_text,
+                    'language': language,
+                    'created_at': datetime.datetime.utcnow()
+                }
             )
         
         log_debug(f"Final Response Sent (Lang: {language}): {response_text[:50]}...")
@@ -792,13 +806,11 @@ def get_chat_history():
         
         # Fetch conversations from database, newest first
         history = db.execute_query(
-            '''SELECT message, response, language, created_at 
-               FROM chatbot_conversations 
-               WHERE user_id = ? 
-               ORDER BY created_at DESC 
-               LIMIT ?''',
-            (user_id, limit)
+            collection='chatbot_conversations',
+            mongo_query={'user_id': user_id}
         )
+        history.sort(key=lambda x: x.get('created_at', datetime.datetime.min), reverse=True)
+        history = history[:limit]
         
         chat_list = []
         for chat in history:

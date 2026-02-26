@@ -40,9 +40,16 @@ def calculate_cost():
             return jsonify({'error': 'Invalid land area'}), 400
         
         
+        from bson.objectid import ObjectId
+        from bson.errors import InvalidId
+        try:
+            query = {'_id': ObjectId(diagnosis_id), 'user_id': user_id}
+        except InvalidId:
+            query = {'id': diagnosis_id, 'user_id': user_id}
+
         diagnosis = db.execute_query(
-            'SELECT * FROM diagnosis_history WHERE id = ? AND user_id = ?',
-            (diagnosis_id, user_id)
+            collection='diagnosis_history',
+            mongo_query=query
         )
         
         if not diagnosis:
@@ -60,21 +67,27 @@ def calculate_cost():
         
         
         cost_id = db.execute_insert(
-            '''INSERT INTO cost_calculations 
-               (diagnosis_id, land_area, treatment_cost, prevention_cost, total_cost)
-               VALUES (?, ?, ?, ?, ?)''',
-            (
-                diagnosis_id,
-                land_area,
-                cost_data['comparison']['treatment_cost'],
-                cost_data['comparison']['prevention_cost'],
-                cost_data['comparison']['total_cost']
-            )
+            collection='cost_calculations',
+            document={
+                'diagnosis_id': str(diagnosis_id),
+                'land_area': land_area,
+                'treatment_cost': cost_data['comparison']['treatment_cost'],
+                'prevention_cost': cost_data['comparison']['prevention_cost'],
+                'total_cost': cost_data['comparison']['total_cost'],
+                'created_at': datetime.datetime.utcnow()
+            }
         )
         
         
-        user = db.execute_query('SELECT preferred_language FROM users WHERE id = ?', (user_id,))
-        language = user[0]['preferred_language'] if user else 'en'
+        from bson.objectid import ObjectId
+        from bson.errors import InvalidId
+        try:
+            query = {'_id': ObjectId(user_id)}
+        except InvalidId:
+            query = {'id': user_id}
+
+        user = db.execute_query(collection='users', mongo_query=query)
+        language = user[0].get('preferred_language', 'en') if user else 'en'
         
         
         if language != 'en':
@@ -112,12 +125,28 @@ def get_cost_report(diagnosis_id):
         user_id = token_data['user_id']
         
         
+        from bson.objectid import ObjectId
+        from bson.errors import InvalidId
+        try:
+            query_diag = {'_id': ObjectId(diagnosis_id), 'user_id': user_id}
+        except InvalidId:
+            query_diag = {'id': diagnosis_id, 'user_id': user_id}
+
+        # First find the diagnosis to ensure it belongs to this user
+        diagnosis = db.execute_query(
+            collection='diagnosis_history',
+            mongo_query=query_diag
+        )
+        
+        if not diagnosis:
+            return jsonify({'error': 'Diagnosis not found'}), 404
+        
+        diagnosis = diagnosis[0]
+
+        # Then find the cost calculation for this diagnosis
         cost_calc = db.execute_query(
-            '''SELECT cc.*, dh.crop, dh.disease, dh.severity_percent, dh.stage
-               FROM cost_calculations cc
-               JOIN diagnosis_history dh ON cc.diagnosis_id = dh.id
-               WHERE cc.diagnosis_id = ? AND dh.user_id = ?''',
-            (diagnosis_id, user_id)
+            collection='cost_calculations',
+            mongo_query={'diagnosis_id': str(diagnosis_id)}
         )
         
         if not cost_calc:
@@ -127,14 +156,14 @@ def get_cost_report(diagnosis_id):
         
         
         cost_data = {
-            'crop': cost_calc['crop'],
-            'disease': cost_calc['disease'],
-            'severity_level': cost_calc['stage'],
+            'crop': diagnosis['crop'],
+            'disease': diagnosis['disease'],
+            'severity_level': diagnosis['stage'],
             'treatment': {
                 'pesticide_cost': cost_calc['treatment_cost'] * 0.7,  
                 'labor_cost': cost_calc['treatment_cost'] * 0.3,
                 'total_treatment_cost': cost_calc['treatment_cost'],
-                'applications_needed': 2 if cost_calc['severity_percent'] < 25 else 3
+                'applications_needed': 2 if diagnosis['severity_percent'] < 25 else 3
             },
             'prevention': {
                 'total_prevention_cost': cost_calc['prevention_cost']
@@ -143,7 +172,7 @@ def get_cost_report(diagnosis_id):
                 'total_cost': cost_calc['total_cost']
             },
             'land_area': cost_calc['land_area'],
-            'urgency': 'high' if cost_calc['severity_percent'] > 50 else 'medium'
+            'urgency': 'high' if diagnosis['severity_percent'] > 50 else 'medium'
         }
         
         
