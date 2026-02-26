@@ -17,6 +17,7 @@ from services.voice_service import generate_diagnosis_voice
 from services.pesticide_service import get_severity_based_recommendations
 from services.cost_service import calculate_total_cost
 from services.weather_service import get_weather_data, get_weather_based_advice
+from services.crop_id_service import identify_crop_from_image
 from api.routes.user import verify_token
 
 
@@ -37,6 +38,8 @@ def detect_disease():
     The main feature: Detect disease from an uploaded image!
     Users can be logged in or anonymous.
     """
+    print(f"\n--- INCOMING DIAGNOSIS REQUEST ---")
+    print(f"Time: {datetime.datetime.now()}")
     try:
         
         user_id = None
@@ -86,9 +89,13 @@ def detect_disease():
         # Identify the crop (e.g., tomato, rice)
         crop = request.form.get('crop', '').lower()
         print(f"DEBUG: Crop value: '{crop}'")
-        if not crop or crop not in ['grape', 'maize', 'potato', 'rice', 'tomato']:
+        
+        # Define valid crops including special 'auto' mode
+        supported_crops = ['grape', 'maize', 'potato', 'rice', 'tomato', 'wheat', 'cotton']
+        
+        if not crop or (crop not in supported_crops and crop != 'auto'):
             print(f"DEBUG: Invalid crop: '{crop}'")
-            return jsonify({'error': 'Valid crop type required (tomato, cotton)'}), 400
+            return jsonify({'error': f'Valid crop type required ({", ".join(supported_crops)}) or "auto"'}), 400
         
         
         # Get location for weather-based advice (optional)
@@ -103,6 +110,26 @@ def detect_disease():
         filename = f"{user_prefix}{timestamp}_{filename}"
         filepath = os.path.join(settings.UPLOAD_FOLDER, filename)
         file.save(filepath)
+        print(f"DEBUG: Saved file to {filepath}")
+        
+        # --- AUTO CROP IDENTIFICATION ---
+        if crop == 'auto':
+            print("DEBUG: Auto-crop mode enabled. Identifying crop from image...")
+            identified_crop = identify_crop_from_image(filepath)
+            if identified_crop:
+                print(f"DEBUG: Successfully identified crop: {identified_crop}")
+                crop = identified_crop
+            else:
+                # Fallback or error if identification fails
+                print("DEBUG: Auto-crop identification failed.")
+                # If we can't identify, we can't diagnose accurately with local ML
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                return jsonify({
+                    'error': 'Crop Identification Failed',
+                    'message': 'We could not automatically identify the crop in this image.',
+                    'details': 'Please select the crop manually or try a clearer photo.'
+                }), 400
         
         
         # --- QUALITY CHECKS ---
