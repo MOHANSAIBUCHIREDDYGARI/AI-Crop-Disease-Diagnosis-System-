@@ -125,7 +125,7 @@ def index():
 if __name__ == '__main__':
     # Print some friendly startup messages
     print("=" * 60)
-    print("🌾 SMART CROP HEALTH API SERVER")
+    print("SMART CROP HEALTH API SERVER")
     print("=" * 60)
     print(f"Server starting on http://{settings.HOST}:{settings.PORT}")
     print(f"Debug mode: {settings.DEBUG}")

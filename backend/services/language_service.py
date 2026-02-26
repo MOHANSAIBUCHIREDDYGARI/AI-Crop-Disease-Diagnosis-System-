@@ -13,34 +13,26 @@ TRANSLATIONS_FILE = os.path.join(
     'database', 'seed', 'translations.json'
 )
 
-def load_base_translations() -> Dict:
-    """Load default translations from a file (like a dictionary book)"""
+def log_debug(message):
     try:
-        if os.path.exists(TRANSLATIONS_FILE):
-            with open(TRANSLATIONS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        print(f"Error loading translation cache: {e}")
-        return {}
-
-base_translations = load_base_translations()
+        # Import here to avoid circular dependency if chatbot imports language_service
+        with open('chatbot_debug.log', 'a', encoding='utf-8') as f:
+            import datetime
+            timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            f.write(f"[{timestamp}] [TRANS] {message}\n")
+    except:
+        pass
 
 def translate_text(text: str, target_language: str = 'en', source_language: str = 'en') -> str:
     """
     Translate text to target language using Google Translate (deep-translator)
-    
-    Args:
-        text: The words to translate
-        target_language: The language we want (e.g., 'hi' for Hindi)
-        source_language: The language we have (defaults to English)
-        
-    Returns:
-        The translated words
     """
     
     # If no change needed, just return the text
     if target_language == source_language or target_language == 'en':
         return text
+    
+    log_debug(f"Translating to {target_language}: {text[:50]}...")
     
     
     # Check our memory cache first

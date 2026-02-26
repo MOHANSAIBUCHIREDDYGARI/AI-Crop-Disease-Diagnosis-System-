@@ -4,10 +4,12 @@ import { Platform } from 'react-native';
 
 /**
  * This is our phone line to the Server (Backend).
- * If we are testing on an Android Emulator, we use a special IP (10.0.2.2).
- * If on Web or iOS Simulator, localhost is fine.
+ * When running on Web (browser), we use localhost since the backend runs on the same machine.
+ * When running on a physical device or emulator, we use the LAN IP so the device can reach the backend.
  */
-export const API_URL = 'http://10.12.234.242:5000/api/';
+export const API_URL = Platform.OS === 'web'
+    ? 'http://localhost:5000/api/'
+    : 'http://10.163.32.227:5000/api/';
 
 const api = axios.create({
     baseURL: API_URL,

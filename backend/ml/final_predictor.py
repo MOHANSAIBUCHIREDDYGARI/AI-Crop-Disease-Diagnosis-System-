@@ -1,14 +1,19 @@
+import os
 from disease_classifier import predict
 from severity_estimator import estimate_severity
 from stage_classifier import classify_stage
 
+# Helper to find the project root (Smart Crop Health API root)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Where are the brain files (models) for each crop?
 MODEL_MAP = {
-    "grape": "../models/grape_disease_model.h5",
-    "maize": "../models/maize_disease_model.h5",
-    "potato": "../models/potato_disease_model.h5",
-    "rice": "../models/rice_disease_model.h5",
-    "tomato": "../models/tomato_disease_model.h5"
+    "grape": os.path.join(BASE_DIR, "models", "grape_disease_model.h5"),
+    "maize": os.path.join(BASE_DIR, "models", "maize_disease_model.h5"),
+    "potato": os.path.join(BASE_DIR, "models", "potato_disease_model.h5"),
+    "rice": os.path.join(BASE_DIR, "models", "rice_disease_model.h5"),
+    "tomato": os.path.join(BASE_DIR, "models", "tomato_disease_model.h5"),
+    "cotton": os.path.join(BASE_DIR, "models", "cotton_disease_model.h5")
 }
 
 # What diseases can we find? (The answers the model can give)
@@ -46,6 +51,11 @@ CLASS_NAMES = {
         "Target Spot",
         "Tomato Yellow Leaf Curl Virus",
         "Tomato mosaic virus"
+    ],
+    "cotton": [
+        "Bacterial Blight",
+        "Curl Virus",
+        "Healthy"
     ]
 }
 
@@ -59,6 +69,15 @@ def full_prediction(image_path, crop):
     """
     
     # 1. Ask the Disease Classifier
+    if crop not in MODEL_MAP:
+         return {
+            "crop": crop,
+            "disease": "Unknown Disease",
+            "confidence": 0.0,
+            "severity_percent": 0.0,
+            "stage": "Unknown"
+        }
+
     disease, confidence = predict(
         image_path,
         MODEL_MAP[crop], # Pick the right brain for the crop

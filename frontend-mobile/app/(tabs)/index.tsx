@@ -19,6 +19,7 @@ const { width } = Dimensions.get('window');
 // These are the crops our AI knows how to diagnose.
 // Ideally, this list mimics what the backend supports.
 const CROP_OPTIONS = [
+  { id: 'auto', name: 'Auto Detect (AI)', image: require('../../assets/images/icon.png') },
   { id: 'tomato', name: 'Tomato', image: require('../../assets/images/tomato.png') },
   { id: 'rice', name: 'Rice', image: require('../../assets/images/rice.png') },
   { id: 'potato', name: 'Potato', image: require('../../assets/images/potato.png') },
@@ -327,6 +328,7 @@ export default function DashboardScreen() {
 
   // 5. The Main Action: Diagnose!
   const handleDiagnose = async () => {
+    console.log('DEBUG: handleDiagnose called. Image URI:', image);
     if (!image) return;
     await performDiagnosis();
   };
@@ -334,9 +336,8 @@ export default function DashboardScreen() {
   // 6. Diagnosis Logic (Sending to Backend)
   const performDiagnosis = async () => {
     if (!image) return;
-
+    console.log('DEBUG: performDiagnosis starting...');
     setLoading(true); // Show spinner
-
     try {
       let response;
 
@@ -344,34 +345,28 @@ export default function DashboardScreen() {
         // --- Web Logic ---
         // On web, we have to convert the image URI to a Blob to send it.
         const blob = await fetch(image).then(r => r.blob());
-        const formData = new FormData();
-        formData.append('image', blob, 'photo.jpg');
-        formData.append('crop', selectedCrop);
-        formData.append('language', language);
+        const webFormData = new FormData();
+        webFormData.append('image', blob, 'photo.jpg');
+        webFormData.append('crop', selectedCrop);
+        webFormData.append('language', language);
 
-        // Add context for better AI accuracy
         if (location) {
-          formData.append('latitude', location.latitude.toString());
-          formData.append('longitude', location.longitude.toString());
+          webFormData.append('latitude', location.latitude.toString());
+          webFormData.append('longitude', location.longitude.toString());
         }
 
-        // Add language so the backend replies in the right language
-        formData.append('language', language);
-
         const apiUrl = 'http://localhost:5000/api/diagnosis/detect';
-        // Get token to send along with the request so the backend knows who we are
         const { getItem } = await import('../../services/storage');
         const token = await getItem('userToken');
 
         const fetchResponse = await fetch(apiUrl, {
           method: 'POST',
-          body: formData,
+          body: webFormData,
           headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         });
 
         if (!fetchResponse.ok) {
           const errorData = await fetchResponse.json();
-          // Create a custom error to handle it in the catch block
           const customError: any = new Error(errorData.error || 'Failed to detect disease');
           customError.response = {
             status: fetchResponse.status,
@@ -382,36 +377,28 @@ export default function DashboardScreen() {
 
         response = { data: await fetchResponse.json() };
       } else {
+        console.log('DEBUG: Constructing mobile FormData...');
         // --- Mobile Logic ---
-        // On phones, it's easier. We just construct the FormData with the URI.
-        const formData = new FormData();
+        const mobileFormData = new FormData();
         const uriParts = image.split('.');
         const fileType = uriParts[uriParts.length - 1];
 
-        formData.append('image', {
+        mobileFormData.append('image', {
           uri: image,
           name: `photo.${fileType}`,
           type: `image/${fileType}`,
         } as any);
-        formData.append('crop', selectedCrop);
-        formData.append('language', language);
+        mobileFormData.append('crop', selectedCrop);
+        mobileFormData.append('language', language);
 
-        // Add context
         if (location) {
-          formData.append('latitude', location.latitude.toString());
-          formData.append('longitude', location.longitude.toString());
+          mobileFormData.append('latitude', location.latitude.toString());
+          mobileFormData.append('longitude', location.longitude.toString());
         }
 
-        response = await api.post('diagnosis/detect', formData, {
-          headers: {
-            // Let Axios set the Content-Type with boundary automatically
-            // But we explicitly need 'Content-Type': 'multipart/form-data' for some RN versions? 
-            // Actually, best practice is usually to let it be. 
-            // IF this breaks, we will revert.
-            'Content-Type': 'multipart/form-data',
-          },
+        console.log('DEBUG: Sending mobile request to API...');
+        response = await api.post('diagnosis/detect', mobileFormData, {
           transformRequest: (data, headers) => {
-            // Hack to ensure Authorization header isn't lost if Axios creates a new header object
             return data;
           }
         });
@@ -695,7 +682,7 @@ export default function DashboardScreen() {
       <View style={styles.section}>
         <T style={styles.sectionTitle}>supportedCrops</T>
         <View style={styles.grid}>
-          {CROP_OPTIONS.map((crop) => (
+          {CROP_OPTIONS.filter(crop => crop.id !== 'auto').map((crop) => (
             <View key={crop.id} style={styles.gridItem}>
               <View style={styles.gridIconImage}>
                 <Image source={crop.image} style={styles.cropImage} />
