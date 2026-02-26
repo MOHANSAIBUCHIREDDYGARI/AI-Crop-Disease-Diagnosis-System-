@@ -17,27 +17,24 @@ def get_pesticides_for_disease(disease_name: str, crop: str, prefer_organic: boo
     disease_clean = disease_name.replace('___', ' ').replace('_', ' ')
     
     # We look in our database for any pesticide that mentions this disease in its 'target_diseases'
-    query = '''
-        SELECT * FROM pesticides 
-        WHERE target_diseases LIKE ? 
-        ORDER BY is_organic DESC, cost_per_liter ASC
-    '''
-    
-    results = db.execute_query(query, (f'%{disease_clean}%',))
+    results = db.execute_query(
+        collection='pesticides',
+        mongo_query={'target_diseases': {'$regex': disease_clean, '$options': 'i'}}
+    )
     
     pesticides = []
     for row in results:
         pesticide = {
-            'id': row['id'],
-            'name': row['name'],
-            'type': row['type'],
-            'dosage_per_acre': row['dosage_per_acre'],
-            'frequency': row['frequency'],
-            'cost_per_liter': row['cost_per_liter'],
-            'is_organic': bool(row['is_organic']),
-            'is_government_approved': bool(row['is_government_approved']),
-            'warnings': row['warnings'],
-            'incompatible_with': row['incompatible_with']
+            'id': str(row.get('_id') or row.get('id')),
+            'name': row.get('name'),
+            'type': row.get('type'),
+            'dosage_per_acre': row.get('dosage_per_acre'),
+            'frequency': row.get('frequency'),
+            'cost_per_liter': row.get('cost_per_liter'),
+            'is_organic': bool(row.get('is_organic')),
+            'is_government_approved': bool(row.get('is_government_approved')),
+            'warnings': row.get('warnings'),
+            'incompatible_with': row.get('incompatible_with')
         }
         pesticides.append(pesticide)
     
@@ -49,23 +46,25 @@ def get_pesticides_for_disease(disease_name: str, crop: str, prefer_organic: boo
 
 def get_pesticide_by_name(name: str) -> Dict:
     """Find details of a specific pesticide by its name."""
-    query = 'SELECT * FROM pesticides WHERE name = ?'
-    results = db.execute_query(query, (name,))
+    results = db.execute_query(
+        collection='pesticides',
+        mongo_query={'name': name}
+    )
     
     if results:
         row = results[0]
         return {
-            'id': row['id'],
-            'name': row['name'],
-            'type': row['type'],
-            'target_diseases': row['target_diseases'],
-            'dosage_per_acre': row['dosage_per_acre'],
-            'frequency': row['frequency'],
-            'cost_per_liter': row['cost_per_liter'],
-            'is_organic': bool(row['is_organic']),
-            'is_government_approved': bool(row['is_government_approved']),
-            'warnings': row['warnings'],
-            'incompatible_with': row['incompatible_with']
+            'id': str(row.get('_id') or row.get('id')),
+            'name': row.get('name'),
+            'type': row.get('type'),
+            'target_diseases': row.get('target_diseases'),
+            'dosage_per_acre': row.get('dosage_per_acre'),
+            'frequency': row.get('frequency'),
+            'cost_per_liter': row.get('cost_per_liter'),
+            'is_organic': bool(row.get('is_organic')),
+            'is_government_approved': bool(row.get('is_government_approved')),
+            'warnings': row.get('warnings'),
+            'incompatible_with': row.get('incompatible_with')
         }
     return None
 

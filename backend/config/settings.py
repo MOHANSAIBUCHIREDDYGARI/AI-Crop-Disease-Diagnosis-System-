@@ -13,8 +13,9 @@ class Settings:
     HOST = os.getenv('HOST', '0.0.0.0') # Allow connections from anywhere
     PORT = int(os.getenv('PORT', 5000)) # The door number our server listens on
     
-    # Where we store our database
-    DATABASE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'crop_diagnosis.db')
+    # Where we store our database (Now using MongoDB)
+    MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+    MONGODB_DB_NAME = os.getenv('MONGODB_DB_NAME', 'crop_diagnosis_db')
     
     # Folder to save uploaded images
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
