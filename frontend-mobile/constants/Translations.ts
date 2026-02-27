@@ -2,6 +2,7 @@ export const Translations = {
     en: {
         preferences: "Preferences",
         appLanguage: "App Language",
+        darkMode: "Dark/Light Mode",
         pushNotifications: "Push Notifications",
         supportLegal: "Support & Legal",
         helpCenter: "Help Center",
@@ -264,7 +265,7 @@ export const Translations = {
     hi: {
         preferences: "प्राथमिकताएं",
         appLanguage: "ऐप भाषा",
-        pushNotifications: "पुश सूचनाएं",
+        darkMode: "पुश सूचनाएं",
         supportLegal: "सहायता और कानूनी",
         helpCenter: "सहायता केंद्र",
         privacyPolicy: "गोपनीयता नीति",
@@ -504,7 +505,7 @@ export const Translations = {
     te: {
         preferences: "ప్రాధాన్యతలు",
         appLanguage: "యాప్ భాష",
-        pushNotifications: "పుష్ నోటిఫికేషన్లు",
+        darkMode: "పుష్ నోటిఫికేషన్లు",
         supportLegal: "మద్దతు & చట్టపరమైన",
         helpCenter: "సహాయ కేంద్రం",
         privacyPolicy: "గోప్యతా విధానం",
@@ -749,7 +750,7 @@ export const Translations = {
         register: "பதிவு",
         preferences: "விருப்பங்கள்",
         appLanguage: "செயலி மொழி",
-        pushNotifications: "தள்ளு அறிவிப்புகள்",
+        darkMode: "தள்ளு அறிவிப்புகள்",
         supportLegal: "ஆதரவு & சட்டம்",
         helpCenter: "உதவி மையம்",
         privacyPolicy: "தனியுரிமைக் கொள்கை",
@@ -968,7 +969,7 @@ export const Translations = {
     kn: {
         preferences: "ಆದ್ಯತೆಗಳು",
         appLanguage: "ಅಪ್ಲಿಕೇಶನ್ ಭಾಷೆ",
-        pushNotifications: "ಪುಶ್ ಅಧಿಸೂಚನೆಗಳು",
+        darkMode: "ಪುಶ್ ಅಧಿಸೂಚನೆಗಳು",
         supportLegal: "ಬೆಂಬಲ ಮತ್ತು ಕಾನೂನು",
         helpCenter: "ಸಹಾಯ ಕೇಂದ್ರ",
         privacyPolicy: "ಗೌಪ್ಯತೆ ನೀತಿ",
@@ -1429,7 +1430,7 @@ export const Translations = {
     ml: {
         preferences: "മുൻഗണനകൾ",
         appLanguage: "ആപ്പ് ഭാഷ",
-        pushNotifications: "പുഷ് അറിയിപ്പുകൾ",
+        darkMode: "പുഷ് അറിയിപ്പുകൾ",
         supportLegal: "പിന്തുണയും നിയമപരവും",
         helpCenter: "സഹായ കേന്ദ്രം",
         privacyPolicy: "സ്വകാര്യതാ നയം",

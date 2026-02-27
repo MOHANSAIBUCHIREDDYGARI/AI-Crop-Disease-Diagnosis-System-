@@ -10,6 +10,8 @@ import { Camera as CameraIcon, Image as ImageIcon, X, ShieldAlert, Sun, CloudRai
 import { useAuth } from '../../context/AuthContext';
 import api, { API_URL } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAppTheme } from '../../context/ThemeContext';
+import { Colors } from '../../constants/theme';
 import { T } from '../../components/ui/T';
 import { addToLocalHistory } from '../../services/localHistory';
 
@@ -57,9 +59,11 @@ export default function DashboardScreen() {
   const cameraRef = useRef<any>(null); // A reference to the camera component so we can tell it to "click"
   const { user, isGuest, updateUser } = useAuth(); // Who is using the app?
   const { language, setLanguage, t } = useLanguage(); // Current language
+  const { isDarkMode, colorScheme } = useAppTheme();
+  const themeParams = Colors[colorScheme];
   const [showLanguageModal, setShowLanguageModal] = useState(false); // Is the language picker open?
 
-  console.log('DashboardScreen rendered. Language:', language);
+  console.log('DashboardScreen rendered. Language:', language, 'Dark Mode:', isDarkMode);
 
   // --- Language Options ---
   // List of languages we support for the UI
@@ -531,12 +535,12 @@ export default function DashboardScreen() {
 
     // THE PREVIEW / UPLOAD MODE
     return (
-      <ScrollView style={styles.container}>
+      <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? themeParams.background : '#f8f8f8' }]}>
         <View style={styles.scanHeader}>
           <TouchableOpacity onPress={() => setIsScanning(false)}>
-            <X size={24} color="#333" />
+            <X size={24} color={isDarkMode ? '#fff' : '#333'} />
           </TouchableOpacity>
-          <Text style={styles.scanTitle}><T>scanCrop</T> <T>{`crop_${selectedCrop}` as any}</T></Text>
+          <Text style={[styles.scanTitle, { color: isDarkMode ? '#fff' : '#333' }]}><T>scanCrop</T> <T>{`crop_${selectedCrop}` as any}</T></Text>
           <View style={{ width: 24 }} />
         </View>
 
@@ -546,10 +550,18 @@ export default function DashboardScreen() {
             {CROP_OPTIONS.map((crop) => (
               <TouchableOpacity
                 key={crop.id}
-                style={[styles.cropChip, selectedCrop === crop.id && styles.cropChipActive]}
+                style={[
+                  styles.cropChip,
+                  isDarkMode && { backgroundColor: '#333', borderColor: '#444' },
+                  selectedCrop === crop.id && styles.cropChipActive
+                ]}
                 onPress={() => setSelectedCrop(crop.id)}
               >
-                <T style={[styles.cropChipText, selectedCrop === crop.id && styles.cropChipTextActive]}>{`crop_${crop.id}` as any}</T>
+                <T style={[
+                  styles.cropChipText,
+                  isDarkMode && { color: '#bbb' },
+                  selectedCrop === crop.id && styles.cropChipTextActive
+                ]}>{`crop_${crop.id}` as any}</T>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -583,12 +595,12 @@ export default function DashboardScreen() {
         </View>
 
         {/* Helpful Tips for the Farmer */}
-        <View style={styles.tipsCard}>
-          <T style={styles.tipsTitle}>tipsTitle</T>
-          <T style={styles.tipText}>tip1</T>
-          <T style={styles.tipText}>tip2</T>
-          <T style={styles.tipText}>tip3</T>
-          <T style={styles.tipText}>tip4</T>
+        <View style={[styles.tipsCard, { backgroundColor: isDarkMode ? '#1e3a5f' : '#e8f4fd' }]}>
+          <T style={[styles.tipsTitle, { color: isDarkMode ? '#64b5f6' : '#1976d2' }]}>tipsTitle</T>
+          <T style={[styles.tipText, { color: isDarkMode ? '#ccc' : '#444' }]}>tip1</T>
+          <T style={[styles.tipText, { color: isDarkMode ? '#ccc' : '#444' }]}>tip2</T>
+          <T style={[styles.tipText, { color: isDarkMode ? '#ccc' : '#444' }]}>tip3</T>
+          <T style={[styles.tipText, { color: isDarkMode ? '#ccc' : '#444' }]}>tip4</T>
         </View>
 
         {/* The Big "Diagnose" Button */}
@@ -610,13 +622,13 @@ export default function DashboardScreen() {
 
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? themeParams.background : '#f8f8f8' }]} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Header with Name & Language Picker */}
-      <View style={styles.dashboardHeader}>
+      <View style={[styles.dashboardHeader, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
         <View style={styles.headerLeft}>
           <View>
-            <T style={styles.greeting}>namaste</T>
-            <Text style={styles.farmerName}>{translatedName || (user ? user.name : t('farmer'))}</Text>
+            <T style={[styles.greeting, { color: isDarkMode ? '#aaa' : '#666' }]}>namaste</T>
+            <Text style={[styles.farmerName, { color: isDarkMode ? '#fff' : '#2c3e50' }]}>{translatedName || (user ? user.name : t('farmer'))}</Text>
           </View>
           <TouchableOpacity onPress={() => router.push('/profile')} style={styles.profileAvatarContainer}>
             <Image source={require('../../assets/images/farmer-avatar.png')} style={styles.profileAvatar} />
@@ -706,8 +718,8 @@ export default function DashboardScreen() {
 
       {/* Main "Call to Action" Button - Start Scanning */}
       <View style={styles.ctaSection}>
-        <Text style={styles.sectionTitle}>{t('whatWouldYouLikeToDo')}</Text>
-        <TouchableOpacity style={styles.heroButton} onPress={() => setIsScanning(true)}>
+        <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>{t('whatWouldYouLikeToDo')}</Text>
+        <TouchableOpacity style={[styles.heroButton, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]} onPress={() => setIsScanning(true)}>
           <View style={styles.heroContent}>
             <View style={styles.heroIconBg}>
               <CameraIcon size={32} color="#fff" />
@@ -723,14 +735,14 @@ export default function DashboardScreen() {
 
       {/* Grid of supported crops (Visual Reference) */}
       <View style={styles.section}>
-        <T style={styles.sectionTitle}>supportedCrops</T>
+        <T style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>supportedCrops</T>
         <View style={styles.grid}>
           {CROP_OPTIONS.filter(crop => crop.id !== 'auto').map((crop) => (
-            <View key={crop.id} style={styles.gridItem}>
+            <View key={crop.id} style={[styles.gridItem, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
               <View style={styles.gridIconImage}>
                 <Image source={crop.image} style={styles.cropImage} />
               </View>
-              <T style={styles.gridLabel}>{`crop_${crop.id}` as any}</T>
+              <T style={[styles.gridLabel, { color: isDarkMode ? '#fff' : '#333' }]}>{`crop_${crop.id}` as any}</T>
             </View>
           ))}
         </View>
@@ -738,11 +750,11 @@ export default function DashboardScreen() {
 
       {/* Upsell for Guest Users to Register */}
       {isGuest && (
-        <View style={styles.upsellCard}>
+        <View style={[styles.upsellCard, { backgroundColor: isDarkMode ? '#1e3b1e' : '#e8f5e9' }]}>
           <ShieldAlert size={24} color="#4caf50" style={{ marginBottom: 8 }} />
-          <Text style={styles.upsellTitle}>{t('saveYourHistory')}</Text>
-          <Text style={styles.upsellDesc}>{t('trackHealth')}</Text>
-          <TouchableOpacity style={styles.upsellBtn} onPress={() => router.push('/profile')}>
+          <Text style={[styles.upsellTitle, { color: isDarkMode ? '#fff' : '#2e7d32' }]}>{t('saveYourHistory')}</Text>
+          <Text style={[styles.upsellDesc, { color: isDarkMode ? '#ccc' : '#2e7d32' }]}>{t('trackHealth')}</Text>
+          <TouchableOpacity style={[styles.upsellBtn, { backgroundColor: isDarkMode ? '#4caf50' : '#2e7d32' }]} onPress={() => router.push('/profile')}>
             <Text style={styles.upsellBtnText}>{t('registerNow')}</Text>
           </TouchableOpacity>
         </View>
@@ -756,11 +768,11 @@ export default function DashboardScreen() {
         onRequestClose={() => setShowLanguageModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
             <View style={styles.modalHeader}>
-              <T style={styles.modalTitle}>selectLanguage</T>
+              <T style={[styles.modalTitle, { color: isDarkMode ? '#fff' : '#333' }]}>selectLanguage</T>
               <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
-                <X size={24} color="#666" />
+                <X size={24} color={isDarkMode ? '#fff' : '#666'} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.languageList}>
@@ -769,7 +781,9 @@ export default function DashboardScreen() {
                   key={lang.code}
                   style={[
                     styles.languageItem,
-                    language === lang.code && styles.languageItemSelected
+                    isDarkMode && { borderBottomColor: '#333' },
+                    language === lang.code && styles.languageItemSelected,
+                    language === lang.code && isDarkMode && { backgroundColor: '#2e3b32' }
                   ]}
                   onPress={async () => {
                     try {
@@ -791,8 +805,8 @@ export default function DashboardScreen() {
                   }}
                 >
                   <View>
-                    <Text style={styles.languageName}>{lang.name}</Text>
-                    <Text style={styles.languageNative}>{lang.nativeName}</Text>
+                    <Text style={[styles.languageName, { color: isDarkMode ? '#fff' : '#333' }]}>{lang.name}</Text>
+                    <Text style={[styles.languageNative, { color: isDarkMode ? '#aaa' : '#666' }]}>{lang.nativeName}</Text>
                   </View>
                   {language === lang.code && (
                     <View style={styles.checkmark}>

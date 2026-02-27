@@ -7,6 +7,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import api, { API_URL } from '../../services/api';
 import { getItem } from '../../services/storage';
+import { useAppTheme } from '../../context/ThemeContext';
+import { Colors } from '../../constants/theme';
 
 interface Message {
     id: string;
@@ -19,7 +21,10 @@ interface Message {
 
 export default function ChatScreen() {
     const { t, language } = useLanguage();
-    console.log('ChatScreen current language:', language);
+    const { isDarkMode, colorScheme } = useAppTheme();
+    const themeParams = Colors[colorScheme];
+
+    console.log('ChatScreen current language:', language, 'Dark Mode:', isDarkMode);
     const flatListRef = useRef<FlatList>(null);
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -358,12 +363,12 @@ export default function ChatScreen() {
                 {item.text ? (
                     <Text style={[
                         styles.messageText,
-                        item.sender === 'user' ? styles.userText : styles.botText
+                        item.sender === 'user' ? styles.userText : [styles.botText, { color: isDarkMode ? '#e0e0e0' : '#333' }]
                     ]}>
                         {item.text.replace(/\\n/g, '\n')}
                     </Text>
                 ) : null}
-                <Text style={styles.timestampText}>
+                <Text style={[styles.timestampText, { color: isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }]}>
                     {item.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                 </Text>
             </View>
@@ -372,15 +377,15 @@ export default function ChatScreen() {
 
     return (
         <KeyboardAvoidingView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: isDarkMode ? themeParams.background : '#fff' }]}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>{t('chatbotTitle')}</Text>
+            <View style={[styles.header, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff', borderBottomColor: isDarkMode ? '#333' : '#eee' }]}>
+                <Text style={[styles.headerTitle, { color: isDarkMode ? '#fff' : '#333' }]}>{t('chatbotTitle')}</Text>
                 <View style={styles.onlineStatus}>
                     <View style={styles.onlineDot} />
-                    <Text style={styles.onlineText}>{t('chatbotOnline')}</Text>
+                    <Text style={[styles.onlineText, { color: isDarkMode ? '#aaa' : '#666' }]}>{t('chatbotOnline')}</Text>
                 </View>
             </View>
 
@@ -397,11 +402,11 @@ export default function ChatScreen() {
 
             {/* Selected Media Preview */}
             {selectedMedia && (
-                <View style={styles.mediaPreviewContainer}>
+                <View style={[styles.mediaPreviewContainer, { backgroundColor: isDarkMode ? '#1e1e1e' : '#f9f9f9', borderTopColor: isDarkMode ? '#333' : '#eee' }]}>
                     {selectedMedia.type === 'video' ? (
-                        <View style={styles.videoPreview}>
-                            <Video size={24} color="#666" />
-                            <Text style={styles.videoPreviewText}>Video selected</Text>
+                        <View style={[styles.videoPreview, { backgroundColor: isDarkMode ? '#333' : '#e0e0e0' }]}>
+                            <Video size={24} color={isDarkMode ? '#aaa' : '#666'} />
+                            <Text style={[styles.videoPreviewText, { color: isDarkMode ? '#ccc' : '#666' }]}>Video selected</Text>
                         </View>
                     ) : (
                         <Image source={{ uri: selectedMedia.uri }} style={styles.imagePreview} />
@@ -424,12 +429,13 @@ export default function ChatScreen() {
                 </View>
             )}
 
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff', borderTopColor: isDarkMode ? '#333' : '#eee' }]}>
                 <View style={styles.inputArea}>
-                    <View style={styles.inputWrapper}>
+                    <View style={[styles.inputWrapper, { backgroundColor: isDarkMode ? '#2c2c2c' : '#f8f8f8' }]}>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { color: isDarkMode ? '#fff' : '#000' }]}
                             placeholder={t('chatbotPlaceholder')}
+                            placeholderTextColor={isDarkMode ? '#888' : '#999'}
                             value={inputText}
                             onChangeText={setInputText}
                             multiline
@@ -440,13 +446,13 @@ export default function ChatScreen() {
                             onPress={pickMedia}
                             disabled={isUploading || isRecording}
                         >
-                            <UploadCloud color="#666" size={20} />
+                            <UploadCloud color={isDarkMode ? "#aaa" : "#666"} size={20} />
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.micButton}
                             onPress={isRecording ? stopRecordingAndSend : startRecording}
                         >
-                            {isRecording ? <Square fill="#f44336" color="#f44336" size={20} /> : <Mic color="#666" size={20} />}
+                            {isRecording ? <Square fill="#f44336" color="#f44336" size={20} /> : <Mic color={isDarkMode ? "#aaa" : "#666"} size={20} />}
                         </TouchableOpacity>
                     </View>
                     <TouchableOpacity
@@ -533,7 +539,7 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     userIcon: {
-        backgroundColor: '#e8f5e9',
+        backgroundColor: '#4caf50',
         marginLeft: 8,
     },
     botIcon: {
@@ -554,7 +560,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 4,
     },
     botBubble: {
-        backgroundColor: '#f1f1f1',
+        backgroundColor: '#4e5b51', // Fixed a generic dark bubble, dynamically styled higher up if needed
         borderTopLeftRadius: 4,
     },
     messageImage: {

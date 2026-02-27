@@ -5,6 +5,8 @@ import { useCallback } from 'react';
 import { Calendar, ChevronRight, Search, Filter, History as HistoryIcon, LogIn } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAppTheme } from '../../context/ThemeContext';
+import { Colors } from '../../constants/theme';
 
 import api from '../../services/api';
 import { getLocalHistory } from '../../services/localHistory';
@@ -26,6 +28,8 @@ export default function HistoryScreen() {
     const { user, isGuest } = useAuth();
     const { t } = useLanguage();
     const router = useRouter();
+    const { isDarkMode, colorScheme } = useAppTheme();
+    const themeParams = Colors[colorScheme];
 
     // Reload history whenever this screen is looked at
     useFocusEffect(
@@ -88,17 +92,17 @@ export default function HistoryScreen() {
 
 
     const renderItem = ({ item }: any) => (
-        <TouchableOpacity style={styles.historyCard} onPress={() => handleItemPress(item.id)}>
+        <TouchableOpacity style={[styles.historyCard, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff', shadowColor: isDarkMode ? '#000' : '#000' }]} onPress={() => handleItemPress(item.id)}>
             <View style={styles.cardContent}>
-                <View style={styles.cropIcon}>
-                    <Text style={styles.cropLetter}>{item.crop.charAt(0).toUpperCase()}</Text>
+                <View style={[styles.cropIcon, { backgroundColor: isDarkMode ? '#2e3b32' : '#e8f5e9' }]}>
+                    <Text style={[styles.cropLetter, { color: isDarkMode ? '#4caf50' : '#2e7d32' }]}>{item.crop.charAt(0).toUpperCase()}</Text>
                 </View>
                 <View style={styles.itemInfo}>
-                    <Text style={styles.itemTitle}>{item.disease.replace(/___/g, ': ').replace(/_/g, ' ')}</Text>
+                    <Text style={[styles.itemTitle, { color: isDarkMode ? '#fff' : '#333' }]}>{item.disease.replace(/___/g, ': ').replace(/_/g, ' ')}</Text>
                     <View style={styles.itemMeta}>
-                        <Calendar size={12} color="#888" />
-                        <Text style={styles.itemDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
-                        <View style={styles.dot} />
+                        <Calendar size={12} color={isDarkMode ? '#888' : '#888'} />
+                        <Text style={[styles.itemDate, { color: isDarkMode ? '#aaa' : '#888' }]}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                        <View style={[styles.dot, { backgroundColor: isDarkMode ? '#555' : '#ccc' }]} />
                         <Text style={styles.itemCrop}>{item.crop.toUpperCase()}</Text>
                     </View>
                 </View>
@@ -106,18 +110,18 @@ export default function HistoryScreen() {
                     <Text style={[styles.confidence, { color: item.confidence > 80 ? '#4caf50' : '#ff9800' }]}>
                         {item.confidence.toFixed(1)}%
                     </Text>
-                    <ChevronRight size={20} color="#ccc" />
+                    <ChevronRight size={20} color={isDarkMode ? '#555' : '#ccc'} />
                 </View>
             </View>
         </TouchableOpacity>
     );
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.title}>{t('diagnosis_history_title')}</Text>
+        <View style={[styles.container, { backgroundColor: isDarkMode ? themeParams.background : '#f8f8f8' }]}>
+            <View style={[styles.header, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+                <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#333' }]}>{t('diagnosis_history_title')}</Text>
                 <TouchableOpacity style={styles.searchButton}>
-                    <Search size={22} color="#333" />
+                    <Search size={22} color={isDarkMode ? '#fff' : '#333'} />
                 </TouchableOpacity>
             </View>
 
@@ -137,11 +141,11 @@ export default function HistoryScreen() {
                 />
             ) : (
                 <View style={styles.emptyContainer}>
-                    <HistoryIcon size={64} color="#eee" />
-                    <Text style={styles.emptyText}>{t('no_diagnoses_found')}</Text>
-                    <Text style={styles.emptySubtext}>{t('history_empty_message')}</Text>
-                    <TouchableOpacity style={styles.startButton} onPress={() => router.replace('/(tabs)')}>
-                        <Text style={styles.startButtonText}>{t('start_new_diagnosis_btn')}</Text>
+                    <HistoryIcon size={64} color={isDarkMode ? '#333' : '#eee'} />
+                    <Text style={[styles.emptyText, { color: isDarkMode ? '#fff' : '#333' }]}>{t('no_diagnoses_found')}</Text>
+                    <Text style={[styles.emptySubtext, { color: isDarkMode ? '#aaa' : '#888' }]}>{t('history_empty_message')}</Text>
+                    <TouchableOpacity style={[styles.startButton, { backgroundColor: isDarkMode ? '#4caf50' : '#4caf50' }]} onPress={() => router.replace('/(tabs)')}>
+                        <Text style={[styles.startButtonText, { color: '#fff' }]}>{t('start_new_diagnosis_btn')}</Text>
                     </TouchableOpacity>
                 </View>
             )}
@@ -284,7 +288,7 @@ const styles = StyleSheet.create({
     },
     guestContainer: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#fff', // Typically overridden by dynamic styles if rendered, but left as default
         justifyContent: 'center',
         alignItems: 'center',
         padding: 32,

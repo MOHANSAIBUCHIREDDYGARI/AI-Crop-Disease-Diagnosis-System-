@@ -3,6 +3,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ShieldCheck, ShieldAlert, BadgeInfo } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppTheme } from '../context/ThemeContext';
+import { Colors } from '../constants/theme';
 
 interface Pesticide {
     name: string;
@@ -19,11 +21,13 @@ interface Pesticide {
  */
 const PesticideCard: React.FC<{ pesticide: Pesticide }> = ({ pesticide }) => {
     const { t } = useLanguage();
+    const { isDarkMode, colorScheme } = useAppTheme();
+    const themeParams = Colors[colorScheme];
 
     return (
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: isDarkMode ? '#2c2c2c' : '#fff' }]}>
             <View style={styles.header}>
-                <Text style={styles.name}>{pesticide.name}</Text>
+                <Text style={[styles.name, { color: isDarkMode ? '#fff' : '#333' }]}>{pesticide.name}</Text>
                 {pesticide.is_organic ? (
                     <View style={styles.organicBadge}>
                         <ShieldCheck size={14} color="#fff" />
@@ -38,24 +42,24 @@ const PesticideCard: React.FC<{ pesticide: Pesticide }> = ({ pesticide }) => {
             </View>
 
             <View style={styles.infoRow}>
-                <Text style={styles.label}>{t('dosage')}:</Text>
-                <Text style={styles.value}>{pesticide.dosage_per_acre}</Text>
+                <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>{t('dosage')}:</Text>
+                <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>{pesticide.dosage_per_acre}</Text>
             </View>
 
             <View style={styles.infoRow}>
-                <Text style={styles.label}>{t('frequency')}:</Text>
-                <Text style={styles.value}>{pesticide.frequency}</Text>
+                <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>{t('frequency')}:</Text>
+                <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>{pesticide.frequency}</Text>
             </View>
 
             <View style={styles.infoRow}>
-                <Text style={styles.label}>{t('estPrice')}:</Text>
-                <Text style={styles.value}>₹{pesticide.cost_per_liter} / L</Text>
+                <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>{t('estPrice')}:</Text>
+                <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>₹{pesticide.cost_per_liter} / L</Text>
             </View>
 
             {pesticide.warnings && (
-                <View style={styles.warningBox}>
-                    <BadgeInfo size={16} color="#d32f2f" />
-                    <Text style={styles.warningText}>{pesticide.warnings}</Text>
+                <View style={[styles.warningBox, { backgroundColor: isDarkMode ? '#4a1515' : '#ffebee' }]}>
+                    <BadgeInfo size={16} color={isDarkMode ? '#ff8a80' : '#d32f2f'} />
+                    <Text style={[styles.warningText, { color: isDarkMode ? '#ff8a80' : '#d32f2f' }]}>{pesticide.warnings}</Text>
                 </View>
             )}
         </View>
