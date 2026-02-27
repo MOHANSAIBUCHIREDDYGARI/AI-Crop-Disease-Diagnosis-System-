@@ -710,11 +710,11 @@ def send_message():
 
                             # Build a structured response directly from ML results without calling Gemma API
                             diagnosis_msg = (
-                                f"🌿 **Automatic Diagnosis Result**\n\n"
-                                f"**Crop Identified:** {crop_name.capitalize()}\n"
-                                f"**Disease Detected:** {disease}\n"
-                                f"**Severity:** {severity:.0f}%\n"
-                                f"**Stage:** {stage}\n\n"
+                                f"🌿 Automatic Diagnosis Result\n\n"
+                                f"Crop Identified: {crop_name.capitalize()}\n"
+                                f"Disease Detected: {disease}\n"
+                                f"Severity: {severity:.0f}%\n"
+                                f"Stage: {stage}\n\n"
                             )
 
                             # Look up disease info from database
@@ -726,9 +726,9 @@ def send_message():
                                 if disease_results:
                                     d = disease_results[0]
                                     diagnosis_msg += (
-                                        f"📋 **Description:** {d.get('description', '')}\n\n"
-                                        f"🔍 **Symptoms:** {d.get('symptoms', '')}\n\n"
-                                        f"🛡️ **Prevention:** {d.get('prevention_steps', '')}\n\n"
+                                        f"📋 Description: {d.get('description', '')}\n\n"
+                                        f"🔍 Symptoms: {d.get('symptoms', '')}\n\n"
+                                        f"🛡️ Prevention: {d.get('prevention_steps', '')}\n\n"
                                     )
                                     # Get pesticide recommendations
                                     p_results = db.execute_query(
@@ -736,7 +736,7 @@ def send_message():
                                         mongo_query={'target_diseases': {'$regex': disease.split()[0], '$options': 'i'}}
                                     )
                                     if p_results:
-                                        diagnosis_msg += "💊 **Recommended Treatments:**\n"
+                                        diagnosis_msg += "💊 Recommended Treatments:\n"
                                         for p in p_results[:3]:
                                             org = "(ORGANIC)" if p.get('is_organic') else "(CHEMICAL)"
                                             diagnosis_msg += (
