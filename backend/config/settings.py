@@ -23,7 +23,7 @@ class Settings:
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'} # Only allow image files
     
     # Path to our AI models (the brains of the operation)
-    MODELS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', 'models')
+    MODELS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
     MODEL_MAP = {
         "tomato": os.path.join(MODELS_PATH, "tomato_disease_model.h5"),
         "rice": os.path.join(MODELS_PATH, "rice_disease_model.h5"),
@@ -84,9 +84,9 @@ class Settings:
     # Email / SMTP settings for OTP delivery
     SMTP_HOST = os.getenv('SMTP_HOST', 'smtp.gmail.com')
     SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
-    SMTP_USER = os.getenv('SMTP_USER', '')      # Your Gmail address
-    SMTP_PASS = os.getenv('SMTP_PASS', '')      # Your Gmail App Password
-    SMTP_FROM = os.getenv('SMTP_FROM', '')      # Sender address (usually same as SMTP_USER)
+    SMTP_USER = os.getenv('SMTP_USER', 'mohansai1810@gmail.com')      # Your Gmail address
+    SMTP_PASS = os.getenv('SMTP_PASS', 'oakg gakb zees dkiq')      # Your Gmail App Password
+    SMTP_FROM = os.getenv('SMTP_FROM', 'mohansai1810@gmail.com')      # Sender address (usually same as SMTP_USER)
     
     # Quality control
     MIN_IMAGE_QUALITY_SCORE = 0.3 # Reject blurry images

@@ -115,10 +115,10 @@ export default function ExploreScreen() {
             {CROPS.map((crop) => (
               <TouchableOpacity
                 key={crop.id}
-                style={[styles.cropCard, { backgroundColor: isDarkMode ? '#1e1e1e' : '#FFFFFF', borderColor: isDarkMode ? '#333' : 'rgba(0,0,0,0.03)' }]}
+                style={styles.cropCard}
                 activeOpacity={0.8}
               >
-                <View style={[styles.cropImageContainer, { backgroundColor: crop.color + (isDarkMode ? '25' : '15') }]}>
+                <View style={[styles.cropImageContainer, { backgroundColor: 'transparent' }]}>
                   <Image source={crop.image} style={styles.cropImage} contentFit="contain" />
                 </View>
                 <ThemedText style={[styles.cropName, { color: isDarkMode ? '#fff' : '#2E3D2E' }]}>{crop.name}</ThemedText>
@@ -331,21 +331,13 @@ const styles = StyleSheet.create({
   cropsContainer: {
     paddingHorizontal: 24,
     paddingBottom: 24,
+    flexDirection: 'row',
     gap: 16,
   },
   cropCard: {
     width: 90,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
     padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.03)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 4,
   },
   cropImageContainer: {
     width: 64,
@@ -356,8 +348,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cropImage: {
-    width: 40,
-    height: 40,
+    width: 60,
+    height: 60,
   },
   cropName: {
     fontSize: 14,

@@ -7,13 +7,17 @@ from stage_classifier import classify_stage
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Where are the brain files (models) for each crop?
+# Calculate path dynamically to handle backend/models relative location
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODELS_DIR = os.path.join(BACKEND_DIR, "models")
+
 MODEL_MAP = {
-    "grape": os.path.join(BASE_DIR, "models", "grape_disease_model.h5"),
-    "maize": os.path.join(BASE_DIR, "models", "maize_disease_model.h5"),
-    "potato": os.path.join(BASE_DIR, "models", "potato_disease_model.h5"),
-    "rice": os.path.join(BASE_DIR, "models", "rice_disease_model.h5"),
-    "tomato": os.path.join(BASE_DIR, "models", "tomato_disease_model.h5"),
-    "cotton": os.path.join(BASE_DIR, "models", "cotton_disease_model.h5")
+    "grape": os.path.join(MODELS_DIR, "grape_disease_model.h5"),
+    "maize": os.path.join(MODELS_DIR, "maize_disease_model.h5"),
+    "potato": os.path.join(MODELS_DIR, "potato_disease_model.h5"),
+    "rice": os.path.join(MODELS_DIR, "rice_disease_model.h5"),
+    "tomato": os.path.join(MODELS_DIR, "tomato_disease_model.h5"),
+    "cotton": os.path.join(MODELS_DIR, "cotton_disease_model.h5")
 }
 
 # What diseases can we find? (The answers the model can give)
