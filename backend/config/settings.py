@@ -80,6 +80,13 @@ class Settings:
     # User session settings
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
     JWT_EXPIRATION_HOURS = 24 * 7  # Keep users logged in for a week
+
+    # Email / SMTP settings (for OTP password reset)
+    EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+    EMAIL_USER = os.getenv('EMAIL_USER', '')
+    EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD', '')
+    EMAIL_FROM = os.getenv('EMAIL_FROM', '')
     
     # Quality control
     MIN_IMAGE_QUALITY_SCORE = 0.3 # Reject blurry images

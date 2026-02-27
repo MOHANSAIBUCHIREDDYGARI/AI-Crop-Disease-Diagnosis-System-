@@ -56,7 +56,7 @@ class Database:
         print(f"⚠️ Warning: `execute_insert` was called with SQL string: {query}. Refactoring required in route.")
         return None
 
-    def execute_update(self, query: str = None, params: tuple = None, collection: str = None, mongo_query: dict = None, update: dict = None):
+    def execute_update(self, query: str = None, params: tuple = None, collection: str = None, mongo_query: dict = None, update: dict = None, upsert: bool = False):
         """
         Execute an UPDATE in MongoDB.
         """
@@ -64,11 +64,20 @@ class Database:
             return False
             
         if collection and mongo_query and update:
-            self.db[collection].update_many(mongo_query, {'$set': update})
+            self.db[collection].update_one(mongo_query, {'$set': update}, upsert=upsert)
             return True
             
         print(f"⚠️ Warning: `execute_update` was called with SQL string: {query}. Refactoring required in route.")
         return False
+
+    def execute_delete(self, collection: str, mongo_query: dict):
+        """
+        Delete documents from a MongoDB collection.
+        """
+        if self.db is None:
+            return False
+        self.db[collection].delete_many(mongo_query)
+        return True
 
 # Export the db instance for other files to use
 db = Database()

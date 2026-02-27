@@ -4,6 +4,10 @@ import jwt
 import datetime
 import sys
 import os
+import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Add the project root to the path so we can import our modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -301,5 +305,163 @@ def get_translations():
         translations = get_translated_ui_labels(language)
         return jsonify(translations), 200
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+def send_otp_email(to_email: str, otp: str) -> bool:
+    """Send an OTP code via email using SMTP"""
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = 'Your Password Reset OTP - CropAI'
+        msg['From'] = settings.EMAIL_FROM
+        msg['To'] = to_email
+
+        html_body = f"""
+        <html><body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:30px;">
+          <div style="background:#fff;border-radius:12px;padding:30px;max-width:480px;margin:auto;box-shadow:0 2px 12px rgba(0,0,0,0.1);">
+            <h2 style="color:#2e7d32;">🌿 CropAI Password Reset</h2>
+            <p style="color:#555;">You requested a password reset. Use the OTP below:</p>
+            <div style="background:#e8f5e9;border-radius:10px;padding:20px;text-align:center;margin:24px 0;">
+              <span style="font-size:40px;font-weight:bold;letter-spacing:12px;color:#1b5e20;">{otp}</span>
+            </div>
+            <p style="color:#777;font-size:14px;">This OTP expires in <b>10 minutes</b>.</p>
+            <p style="color:#aaa;font-size:12px;">If you did not request this, please ignore this email.</p>
+          </div>
+        </body></html>
+        """
+        msg.attach(MIMEText(html_body, 'html'))
+
+        with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(settings.EMAIL_USER, settings.EMAIL_PASSWORD)
+            server.sendmail(settings.EMAIL_FROM, to_email, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"[EMAIL ERROR] {e}")
+        return False
+
+
+@user_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    """Step 1: Request OTP for password reset"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+
+        # Check user exists
+        users = db.execute_query(collection='users', mongo_query={'email': email})
+        if not users:
+            return jsonify({'error': 'No account found with this email address. Please check the email you registered with.'}), 404
+
+        # Generate 6-digit OTP
+        otp = str(random.randint(100000, 999999))
+        expires_at = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
+
+        # Upsert OTP record (delete old one first if exists)
+        db.execute_update(
+            collection='password_resets',
+            mongo_query={'email': email},
+            update={'email': email, 'otp': otp, 'expires_at': expires_at, 'verified': False},
+            upsert=True
+        )
+
+        # Send the email
+        sent = send_otp_email(email, otp)
+        if not sent:
+            return jsonify({'error': 'Failed to send OTP email. Please check your email configuration.'}), 500
+
+        return jsonify({'message': 'OTP sent successfully to your email'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@user_bp.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    """Step 2: Verify the OTP entered by the user"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        otp = data.get('otp', '').strip()
+
+        if not email or not otp:
+            return jsonify({'error': 'Email and OTP are required'}), 400
+
+        # Find the OTP record
+        records = db.execute_query(
+            collection='password_resets',
+            mongo_query={'email': email, 'otp': otp}
+        )
+
+        if not records:
+            return jsonify({'error': 'Invalid OTP. Please try again.'}), 400
+
+        record = records[0]
+
+        # Check expiry
+        if datetime.datetime.utcnow() > record['expires_at']:
+            return jsonify({'error': 'OTP has expired. Please request a new one.'}), 400
+
+        # Mark as verified so password reset can proceed
+        db.execute_update(
+            collection='password_resets',
+            mongo_query={'email': email},
+            update={'verified': True}
+        )
+
+        return jsonify({'message': 'OTP verified successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@user_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """Step 3: Set a new password after OTP verification"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        otp = data.get('otp', '').strip()
+        new_password = data.get('new_password', '')
+
+        if not email or not otp or not new_password:
+            return jsonify({'error': 'Email, OTP, and new password are required'}), 400
+
+        if len(new_password) < 6:
+            return jsonify({'error': 'Password must be at least 6 characters'}), 400
+
+        # Verify OTP is still valid and was verified
+        records = db.execute_query(
+            collection='password_resets',
+            mongo_query={'email': email, 'otp': otp, 'verified': True}
+        )
+
+        if not records:
+            return jsonify({'error': 'Invalid or unverified OTP. Please restart the process.'}), 400
+
+        record = records[0]
+        if datetime.datetime.utcnow() > record['expires_at']:
+            return jsonify({'error': 'OTP has expired. Please request a new one.'}), 400
+
+        # Hash the new password
+        new_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Update the user's password
+        db.execute_update(
+            collection='users',
+            mongo_query={'email': email},
+            update={'password_hash': new_hash, 'updated_at': datetime.datetime.utcnow()}
+        )
+
+        # Clean up OTP record
+        db.execute_delete(collection='password_resets', mongo_query={'email': email})
+
+        return jsonify({'message': 'Password reset successfully. Please log in with your new password.'}), 200
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
