@@ -48,7 +48,7 @@ def validate_land_area(area: float) -> Dict[str, Any]:
     Returns:
         Dictionary with is_valid and message
     """
-    if area <= 0:
+    if area < 0:
         return {
             'is_valid': False,
             'message': 'Land area must be greater than 0'
