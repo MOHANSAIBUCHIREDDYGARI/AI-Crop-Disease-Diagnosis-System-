@@ -103,8 +103,8 @@ export default function DashboardScreen() {
       setWeather({
         temp: 28,
         code: 0,
-        description: t('clearSky'),
-        location: t('weatherUnavailable'),
+        description: '__clearSky__',
+        location: '__unavailable__',
       });
     }
   };
@@ -651,10 +651,18 @@ export default function DashboardScreen() {
             {location ? (weather ? `${weather.temp}°C` : t('weatherLoading')) : t('weatherNA')}
           </Text>
           <Text style={styles.weatherDesc}>
-            {location ? (weather ? (weather.description || t(`weather_${weather.code}` as any)) : t('weatherFetching')) : t('weatherUnavailable')}
+            {location ? (
+              weather
+                ? (weather.description === '__clearSky__' ? t('clearSky') : (weather.description || t(`weather_${weather.code}` as any)))
+                : t('weatherFetching')
+            ) : t('weatherUnavailable')}
           </Text>
           <Text style={styles.weatherLocation}>
-            {location ? (weather ? (translatedLocation || weather.location || t('yourLocation')) : t('weather')) : t('enableGps')}
+            {location
+              ? (weather
+                ? (weather.location === '__unavailable__' ? t('weatherUnavailable') : (translatedLocation || weather.location || t('yourLocation')))
+                : t('weather'))
+              : t('enableGps')}
           </Text>
           <TouchableOpacity
             style={[styles.locationBadge, !location && styles.locationBadgeDisabled]}

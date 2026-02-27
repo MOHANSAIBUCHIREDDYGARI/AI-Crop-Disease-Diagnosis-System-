@@ -80,6 +80,13 @@ class Settings:
     # User session settings
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
     JWT_EXPIRATION_HOURS = 24 * 7  # Keep users logged in for a week
+
+    # Email / SMTP settings for OTP delivery
+    SMTP_HOST = os.getenv('SMTP_HOST', 'smtp.gmail.com')
+    SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
+    SMTP_USER = os.getenv('SMTP_USER', '')      # Your Gmail address
+    SMTP_PASS = os.getenv('SMTP_PASS', '')      # Your Gmail App Password
+    SMTP_FROM = os.getenv('SMTP_FROM', '')      # Sender address (usually same as SMTP_USER)
     
     # Quality control
     MIN_IMAGE_QUALITY_SCORE = 0.3 # Reject blurry images

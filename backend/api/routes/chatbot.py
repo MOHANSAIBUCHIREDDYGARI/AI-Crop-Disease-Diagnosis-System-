@@ -45,7 +45,7 @@ if GEMINI_AVAILABLE and settings.GOOGLE_GEMINI_API_KEY:
     try:
         genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
         # Using working model 'gemma-3-12b-it' which supports multimodal input
-        gemma_model = genai.GenerativeModel('models/gemma-3-12b-it')
+        gemma_model = genai.GenerativeModel('models/gemma-3-27b-it')
         log_debug("Gemini AI (Gemma 3) configured successfully")
     except Exception as e:
         log_debug(f"Gemini AI configuration failed: {e}")

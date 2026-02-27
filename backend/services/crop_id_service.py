@@ -29,7 +29,7 @@ def identify_crop_from_image(image_path):
     try:
         genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
         # Using fast multimodal model 'gemini-2.5-flash'
-        model = genai.GenerativeModel('models/gemini-2.5-flash')
+        model = genai.GenerativeModel('models/gemma-3-27b-it')
         
         if not os.path.exists(image_path):
             log_debug(f"Image not found: {image_path}")

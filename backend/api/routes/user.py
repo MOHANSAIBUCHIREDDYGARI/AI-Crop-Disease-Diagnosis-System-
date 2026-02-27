@@ -12,6 +12,7 @@ from database.db_connection import db
 from config.settings import settings
 from utils.validators import validate_user_registration, validate_email, validate_language
 from services.language_service import get_translated_ui_labels
+from services.email_service import generate_otp, send_otp_email, store_otp, verify_otp
 
 # Create a 'blueprint' for all user-related routes (registration, login, profile)
 user_bp = Blueprint('user', __name__)
@@ -59,7 +60,7 @@ def register():
         )
         
         if existing_user:
-            return jsonify({'error': 'Email already registered'}), 400
+            return jsonify({'error': 'An account with this email already exists. Please login instead.'}), 409
         
         # Scramble the password so it's safe even if our database is seen
         password_hash = bcrypt.hashpw(
@@ -67,7 +68,7 @@ def register():
             bcrypt.gensalt()
         ).decode('utf-8')
         
-        # Save the new user to the database
+        # Save the new user to the database (email not verified yet)
         user_id = db.execute_insert(
             collection='users',
             document={
@@ -78,21 +79,20 @@ def register():
                 'farm_location': data.get('farm_location', ''),
                 'farm_size': data.get('farm_size', 0),
                 'preferred_language': data.get('preferred_language', 'en'),
+                'is_email_verified': False,
                 'created_at': datetime.datetime.utcnow()
             }
         )
         
-        # Create a token immediately so they are logged in right after signing up
-        token = generate_token(user_id)
-        
         return jsonify({
-            'message': 'User registered successfully',
+            'message': 'User registered successfully. Please verify your email.',
             'user_id': user_id,
-            'token': token
+            'email': data['email']
         }), 201
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @user_bp.route('/login', methods=['POST'])
 def login():
@@ -301,5 +301,157 @@ def get_translations():
         translations = get_translated_ui_labels(language)
         return jsonify(translations), 200
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# OTP: Email Verification (Registration)
+# ---------------------------------------------------------------------------
+
+@user_bp.route('/send-otp', methods=['POST'])
+def send_otp():
+    """Send email verification OTP to a registered (but unverified) user."""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower().strip()
+
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+
+        # Make sure the user exists in our database
+        user = db.execute_query(collection='users', mongo_query={'email': email})
+        if not user:
+            return jsonify({'error': 'No account found with this email'}), 404
+
+        # Generate and store OTP
+        otp = generate_otp()
+        store_otp(email, otp, purpose='verify')
+
+        # Send the email
+        sent = send_otp_email(email, otp, purpose='verify')
+        if not sent:
+            return jsonify({'error': 'Failed to send OTP email. Check SMTP settings in .env'}), 500
+
+        return jsonify({'message': f'OTP sent to {email}'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@user_bp.route('/verify-email-otp', methods=['POST'])
+def verify_email_otp():
+    """Verify the OTP for email verification after registration."""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower().strip()
+        otp = data.get('otp', '').strip()
+
+        if not email or not otp:
+            return jsonify({'error': 'Email and OTP are required'}), 400
+
+        result = verify_otp(email, otp, purpose='verify')
+        if not result['valid']:
+            return jsonify({'error': result['error']}), 400
+
+        # Mark the user as email-verified
+        db.execute_update(
+            collection='users',
+            mongo_query={'email': email},
+            update={'is_email_verified': True, 'updated_at': datetime.datetime.utcnow()}
+        )
+
+        # Find user to return a login token
+        user = db.execute_query(collection='users', mongo_query={'email': email})
+        if user:
+            user = user[0]
+            token = generate_token(str(user.get('_id') or user.get('id')))
+            return jsonify({
+                'message': 'Email verified successfully! You are now logged in.',
+                'token': token,
+                'user': {
+                    'id': str(user.get('_id') or user.get('id')),
+                    'email': user.get('email'),
+                    'name': user.get('name'),
+                    'preferred_language': user.get('preferred_language', 'en')
+                }
+            }), 200
+
+        return jsonify({'message': 'Email verified successfully!'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# OTP: Forgot Password / Reset Password
+# ---------------------------------------------------------------------------
+
+@user_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    """Send a password-reset OTP to the farmer's email."""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower().strip()
+
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+
+        # Only send OTP if the account actually exists (security: don't reveal existence)
+        user = db.execute_query(collection='users', mongo_query={'email': email})
+        if not user:
+            # Return success anyway (prevents email enumeration attacks)
+            return jsonify({'message': 'If the email is registered, an OTP will be sent.'}), 200
+
+        otp = generate_otp()
+        store_otp(email, otp, purpose='reset')
+        sent = send_otp_email(email, otp, purpose='reset')
+
+        if not sent:
+            return jsonify({'error': 'Failed to send OTP email. Check SMTP settings in .env'}), 500
+
+        return jsonify({'message': f'Password reset OTP sent to {email}'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@user_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """Verify OTP and set a new password for the user."""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower().strip()
+        otp = data.get('otp', '').strip()
+        new_password = data.get('new_password', '')
+
+        if not email or not otp or not new_password:
+            return jsonify({'error': 'Email, OTP, and new password are required'}), 400
+
+        if len(new_password) < 6:
+            return jsonify({'error': 'Password must be at least 6 characters'}), 400
+
+        # Verify the OTP
+        result = verify_otp(email, otp, purpose='reset')
+        if not result['valid']:
+            return jsonify({'error': result['error']}), 400
+
+        # Hash and save the new password
+        new_hash = bcrypt.hashpw(
+            new_password.encode('utf-8'),
+            bcrypt.gensalt()
+        ).decode('utf-8')
+
+        db.execute_update(
+            collection='users',
+            mongo_query={'email': email},
+            update={
+                'password_hash': new_hash,
+                'updated_at': datetime.datetime.utcnow()
+            }
+        )
+
+        return jsonify({'message': 'Password reset successfully. Please log in with your new password.'}), 200
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
