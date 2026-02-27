@@ -8,9 +8,9 @@ import { Platform } from 'react-native';
  * For LAN mode (npx expo start) - your phone must be on the same Wi-Fi as your PC.
  * The IP address must match your PC's current Wi-Fi IP (run 'ipconfig' to check).
  *
- * Current LAN IP: 10.163.32.227
+ * Current LAN IP: 10.12.234.242
  */
-export const BACKEND_HOST = '10.163.32.227';
+export const BACKEND_HOST = '10.12.234.242';
 export const BACKEND_PORT = 5000;
 export const API_URL = Platform.OS === 'web'
     ? `http://localhost:${BACKEND_PORT}/api/`
