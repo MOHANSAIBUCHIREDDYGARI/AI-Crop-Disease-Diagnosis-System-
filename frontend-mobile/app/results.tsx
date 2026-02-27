@@ -141,7 +141,7 @@ export default function ResultsScreen() {
     const labels = result.ui_translations || {};
 
     // Make the disease name look nice (remove underscores)
-    let displayDisease = prediction.disease_local || prediction.disease.replace(/___/g, ': ').replace(/_/g, ' ');
+    let displayDisease = prediction.disease_local || (prediction.disease ? prediction.disease.replace(/___/g, ': ').replace(/_/g, ' ') : 'Unknown Disease');
     if (prediction.disease === 'Healthy' && !prediction.disease_local) {
         displayDisease = t('healthy');
     }
@@ -191,7 +191,7 @@ export default function ResultsScreen() {
                 <View style={styles.statsRow}>
                     <View style={[styles.statBox, { backgroundColor: isDarkMode ? '#2c2c2c' : '#f9f9f9' }]}>
                         <Text style={[styles.statLabel, { color: isDarkMode ? '#888' : '#888' }]}>{labels.severity || t('severity')}</Text>
-                        <Text style={[styles.statValue, { color: isDarkMode ? '#fff' : '#333' }]}>{prediction.severity_percent.toFixed(1)}%</Text>
+                        <Text style={[styles.statValue, { color: isDarkMode ? '#fff' : '#333' }]}>{prediction.severity_percent ? prediction.severity_percent.toFixed(1) + '%' : 'N/A'}</Text>
                     </View>
                     <View style={[styles.statBox, { backgroundColor: isDarkMode ? '#2c2c2c' : '#f9f9f9' }]}>
                         <Text style={[styles.statLabel, { color: isDarkMode ? '#888' : '#888' }]}>{labels.diagnosis_id || t('diagnosisId')}</Text>

@@ -536,7 +536,7 @@ export default function DashboardScreen() {
     // THE PREVIEW / UPLOAD MODE
     return (
       <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? themeParams.background : '#f8f8f8' }]}>
-        <View style={styles.scanHeader}>
+        <View style={[styles.scanHeader, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
           <TouchableOpacity onPress={() => setIsScanning(false)}>
             <X size={24} color={isDarkMode ? '#fff' : '#333'} />
           </TouchableOpacity>
@@ -568,7 +568,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Image Preview or Action Buttons */}
-        <View style={styles.uploadArea}>
+        <View style={[styles.uploadArea, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
           {image ? (
             <View style={styles.previewArea}>
               <Image source={{ uri: image }} style={styles.previewImg} />
@@ -579,16 +579,16 @@ export default function DashboardScreen() {
           ) : (
             <View style={styles.actionButtons}>
               <TouchableOpacity style={styles.bigActionBtn} onPress={() => setIsCameraActive(true)}>
-                <View style={[styles.iconCircle, { backgroundColor: '#e8f5e9' }]}>
+                <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1e3b20' : '#e8f5e9' }]}>
                   <CameraIcon size={32} color="#4caf50" />
                 </View>
-                <T style={styles.actionLabel}>scanCrop</T>
+                <T style={[styles.actionLabel, { color: isDarkMode ? '#ccc' : '#555' }]}>scanCrop</T>
               </TouchableOpacity>
               <TouchableOpacity style={styles.bigActionBtn} onPress={pickImage}>
-                <View style={[styles.iconCircle, { backgroundColor: '#e3f2fd' }]}>
+                <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? '#1e3a5f' : '#e3f2fd' }]}>
                   <ImageIcon size={32} color="#2196f3" />
                 </View>
-                <T style={styles.actionLabel}>uploadImage</T>
+                <T style={[styles.actionLabel, { color: isDarkMode ? '#ccc' : '#555' }]}>uploadImage</T>
               </TouchableOpacity>
             </View>
           )}
@@ -725,8 +725,8 @@ export default function DashboardScreen() {
               <CameraIcon size={32} color="#fff" />
             </View>
             <View>
-              <T style={styles.heroTitle}>scanCrop</T>
-              <T style={styles.heroSubtitle}>instantDiagnosis</T>
+              <T style={[styles.heroTitle, { color: isDarkMode ? '#fff' : '#333' }]}>scanCrop</T>
+              <T style={[styles.heroSubtitle, { color: isDarkMode ? '#aaa' : '#666' }]}>instantDiagnosis</T>
             </View>
           </View>
           <ArrowRight size={24} color="#2E7D32" />
@@ -781,7 +781,7 @@ export default function DashboardScreen() {
                   key={lang.code}
                   style={[
                     styles.languageItem,
-                    isDarkMode && { borderBottomColor: '#333' },
+                    { backgroundColor: isDarkMode ? '#2c2c2c' : '#f8f9fa', borderColor: isDarkMode ? '#444' : 'transparent' },
                     language === lang.code && styles.languageItemSelected,
                     language === lang.code && isDarkMode && { backgroundColor: '#2e3b32' }
                   ]}
@@ -998,11 +998,9 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
   },
   heroSubtitle: {
     fontSize: 13,
-    color: '#666',
     marginTop: 2,
   },
   section: {
@@ -1160,7 +1158,6 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontWeight: '600',
-    color: '#555',
   },
   tipsCard: {
     marginHorizontal: 24,
@@ -1284,6 +1281,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginVertical: 4,
     backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   languageItemSelected: {
     backgroundColor: '#e8f5e9',

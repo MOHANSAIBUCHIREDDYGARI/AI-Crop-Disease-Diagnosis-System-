@@ -28,6 +28,35 @@ export default function ProfileScreen() {
     console.log('ProfileScreen rendered. Current language:', language, 'Dark mode:', isDarkMode);
 
     const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+    const [translatedName, setTranslatedName] = useState<string>('');
+
+    // Translate the user's name dynamically when language changes
+    useEffect(() => {
+        const translateDynamicContent = async () => {
+            const nameToTranslate = isGuest ? t('guestUser') : (user?.name || '');
+
+            if (language === 'en' || !nameToTranslate) {
+                setTranslatedName(nameToTranslate);
+                return;
+            }
+
+            try {
+                const response = await api.post('translations/batch', {
+                    texts: { name: nameToTranslate },
+                    target_language: language
+                });
+
+                if (response.data && response.data.name) {
+                    setTranslatedName(response.data.name);
+                }
+            } catch (error) {
+                console.log('Error translating profile name:', error);
+                setTranslatedName(nameToTranslate);
+            }
+        };
+
+        translateDynamicContent();
+    }, [language, user, t, isGuest]);
 
     const handleSignOut = async () => {
         const doLogout = async () => {
@@ -97,7 +126,7 @@ export default function ProfileScreen() {
                 <View style={[styles.avatarCircle, { backgroundColor: isDarkMode ? '#2e3b32' : '#e8f5e9' }]}>
                     <User size={40} color="#4caf50" />
                 </View>
-                <Text style={[styles.userName, { color: isDarkMode ? '#fff' : '#333' }]}>{isGuest ? t('guestUser') : user?.name}</Text>
+                <Text style={[styles.userName, { color: isDarkMode ? '#fff' : '#333' }]}>{translatedName || (isGuest ? t('guestUser') : user?.name)}</Text>
                 <Text style={[styles.userEmail, { color: isDarkMode ? '#aaa' : '#666' }]}>{isGuest ? t('browseMode') : user?.email}</Text>
 
                 {isGuest && (

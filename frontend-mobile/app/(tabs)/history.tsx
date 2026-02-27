@@ -95,15 +95,15 @@ export default function HistoryScreen() {
         <TouchableOpacity style={[styles.historyCard, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff', shadowColor: isDarkMode ? '#000' : '#000' }]} onPress={() => handleItemPress(item.id)}>
             <View style={styles.cardContent}>
                 <View style={[styles.cropIcon, { backgroundColor: isDarkMode ? '#2e3b32' : '#e8f5e9' }]}>
-                    <Text style={[styles.cropLetter, { color: isDarkMode ? '#4caf50' : '#2e7d32' }]}>{item.crop.charAt(0).toUpperCase()}</Text>
+                    <Text style={[styles.cropLetter, { color: isDarkMode ? '#4caf50' : '#2e7d32' }]}>{item.crop ? item.crop.charAt(0).toUpperCase() : '?'}</Text>
                 </View>
                 <View style={styles.itemInfo}>
-                    <Text style={[styles.itemTitle, { color: isDarkMode ? '#fff' : '#333' }]}>{item.disease.replace(/___/g, ': ').replace(/_/g, ' ')}</Text>
+                    <Text style={[styles.itemTitle, { color: isDarkMode ? '#fff' : '#333' }]}>{item.disease ? item.disease.replace(/___/g, ': ').replace(/_/g, ' ') : 'Unknown Disease'}</Text>
                     <View style={styles.itemMeta}>
                         <Calendar size={12} color={isDarkMode ? '#888' : '#888'} />
                         <Text style={[styles.itemDate, { color: isDarkMode ? '#aaa' : '#888' }]}>{new Date(item.created_at).toLocaleDateString()}</Text>
                         <View style={[styles.dot, { backgroundColor: isDarkMode ? '#555' : '#ccc' }]} />
-                        <Text style={styles.itemCrop}>{item.crop.toUpperCase()}</Text>
+                        <Text style={styles.itemCrop}>{item.crop ? item.crop.toUpperCase() : ''}</Text>
                     </View>
                 </View>
                 <View style={styles.rightContent}>
@@ -120,9 +120,6 @@ export default function HistoryScreen() {
         <View style={[styles.container, { backgroundColor: isDarkMode ? themeParams.background : '#f8f8f8' }]}>
             <View style={[styles.header, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
                 <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#333' }]}>{t('diagnosis_history_title')}</Text>
-                <TouchableOpacity style={styles.searchButton}>
-                    <Search size={22} color={isDarkMode ? '#fff' : '#333'} />
-                </TouchableOpacity>
             </View>
 
             {loading && !refreshing ? (

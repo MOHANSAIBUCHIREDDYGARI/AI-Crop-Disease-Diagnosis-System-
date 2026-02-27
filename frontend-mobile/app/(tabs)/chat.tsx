@@ -348,7 +348,7 @@ export default function ChatScreen() {
             </View>
             <View style={[
                 styles.messageBubble,
-                item.sender === 'user' ? styles.userBubble : styles.botBubble
+                item.sender === 'user' ? styles.userBubble : [styles.botBubble, { backgroundColor: isDarkMode ? '#2e3b32' : '#e8f5e9' }]
             ]}>
                 {item.image && (
                     item.mediaType === 'video' ? (
@@ -560,7 +560,6 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 4,
     },
     botBubble: {
-        backgroundColor: '#4e5b51', // Fixed a generic dark bubble, dynamically styled higher up if needed
         borderTopLeftRadius: 4,
     },
     messageImage: {
