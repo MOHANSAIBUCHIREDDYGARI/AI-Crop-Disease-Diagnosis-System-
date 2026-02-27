@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { LanguageProvider, useLanguage } from '../context/LanguageContext';
+import { AppThemeProvider } from '../context/ThemeContext';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -59,7 +60,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <LanguageProvider>
-        <RootLayoutContent />
+        <AppThemeProvider>
+          <RootLayoutContent />
+        </AppThemeProvider>
       </LanguageProvider>
     </AuthProvider>
   );

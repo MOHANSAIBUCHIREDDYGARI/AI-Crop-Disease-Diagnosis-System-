@@ -533,9 +533,6 @@ def get_fallback_response(message: str, language: str = 'en', context: str = '')
         except Exception as e:
             print(f"Fallback translation error: {e}")
             
-    if context:
-        response_text = f"{context}\n\n{response_text}"
-    
     return response_text
 
 @chatbot_bp.route('/upload', methods=['POST'])

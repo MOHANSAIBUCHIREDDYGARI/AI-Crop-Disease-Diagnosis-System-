@@ -7,6 +7,8 @@ import { Fonts } from '@/constants/theme';
 import { Collapsible } from '@/components/ui/collapsible';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAppTheme } from '@/context/ThemeContext';
+import { Colors } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +24,8 @@ interface DiseaseData {
 export default function ExploreScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { isDarkMode, colorScheme } = useAppTheme();
+  const themeParams = Colors[colorScheme];
 
   const CROPS = [
     { id: 'tomato', name: t('crop_tomato'), image: require('../../assets/images/tomato.png'), color: '#FF7676' },
@@ -67,10 +71,10 @@ export default function ExploreScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? themeParams.background : '#F2F6F2' }]}>
       {/* Absolute Header Gradient that bleeds down */}
       <LinearGradient
-        colors={['#103e14', '#1B5E20', '#F2F6F2']}
+        colors={isDarkMode ? ['#0d2b0f', '#124016', themeParams.background] : ['#103e14', '#1B5E20', '#F2F6F2']}
         locations={[0, 0.3, 0.6]}
         style={styles.absoluteBackground}
       />
@@ -94,11 +98,11 @@ export default function ExploreScreen() {
           </View>
         </SafeAreaView>
 
-        <View style={styles.mainCanvas}>
+        <View style={[styles.mainCanvas, { backgroundColor: isDarkMode ? themeParams.background : '#F2F6F2' }]}>
 
           {/* --- 1. Supported Crops (Floating Pills) --- */}
           <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>{t('cropsTitle')}</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: isDarkMode ? '#A5D6A7' : '#1B5E20' }]}>{t('cropsTitle')}</ThemedText>
           </View>
 
           <ScrollView
@@ -111,13 +115,13 @@ export default function ExploreScreen() {
             {CROPS.map((crop) => (
               <TouchableOpacity
                 key={crop.id}
-                style={styles.cropCard}
+                style={[styles.cropCard, { backgroundColor: isDarkMode ? '#1e1e1e' : '#FFFFFF', borderColor: isDarkMode ? '#333' : 'rgba(0,0,0,0.03)' }]}
                 activeOpacity={0.8}
               >
-                <View style={[styles.cropImageContainer, { backgroundColor: crop.color + '15' }]}>
+                <View style={[styles.cropImageContainer, { backgroundColor: crop.color + (isDarkMode ? '25' : '15') }]}>
                   <Image source={crop.image} style={styles.cropImage} contentFit="contain" />
                 </View>
-                <ThemedText style={styles.cropName}>{crop.name}</ThemedText>
+                <ThemedText style={[styles.cropName, { color: isDarkMode ? '#fff' : '#2E3D2E' }]}>{crop.name}</ThemedText>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -126,8 +130,8 @@ export default function ExploreScreen() {
 
           {/* --- 2. Threat Identification (Premium Grid) --- */}
           <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>{t('threatsTitle')}</ThemedText>
-            <ThemedText style={styles.sectionSubtext}>{t('threatsSubtitle')}</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: isDarkMode ? '#A5D6A7' : '#1B5E20' }]}>{t('threatsTitle')}</ThemedText>
+            <ThemedText style={[styles.sectionSubtext, { color: isDarkMode ? '#aaa' : '#666' }]}>{t('threatsSubtitle')}</ThemedText>
           </View>
 
           <View style={styles.diseaseGrid}>
@@ -138,13 +142,13 @@ export default function ExploreScreen() {
                 activeOpacity={0.9}
               >
                 <LinearGradient
-                  colors={disease.gradient}
-                  style={styles.diseaseGradient}
+                  colors={isDarkMode ? disease.darkGradient : disease.gradient}
+                  style={[styles.diseaseGradient, { borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255, 255, 255, 0.8)' }]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
                   <View style={styles.diseaseHeader}>
-                    <View style={[styles.diseaseIconContainer, { backgroundColor: '#FFFFFF' }]}>
+                    <View style={[styles.diseaseIconContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.2)' : '#FFFFFF' }]}>
                       <IconSymbol name={disease.icon} size={20} color={disease.textColor} />
                     </View>
                   </View>
@@ -160,21 +164,21 @@ export default function ExploreScreen() {
           {/* --- 3. Daily Expert Tip (Masterpiece Card) --- */}
           <View style={styles.tipCardWrapper}>
             <LinearGradient
-              colors={['#FFF8E1', '#FFECB3']}
-              style={styles.tipCard}
+              colors={isDarkMode ? ['#3e2723', '#4e342e'] : ['#FFF8E1', '#FFECB3']}
+              style={[styles.tipCard, isDarkMode && { borderColor: '#5d4037' }]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
               <View style={styles.tipHeaderRow}>
-                <View style={styles.tipIconBadge}>
-                  <IconSymbol name="lightbulb.fill" size={24} color="#F57F17" />
+                <View style={[styles.tipIconBadge, isDarkMode && { backgroundColor: '#ffca28' }]}>
+                  <IconSymbol name="lightbulb.fill" size={24} color={isDarkMode ? '#3e2723' : '#F57F17'} />
                 </View>
                 <View style={styles.tipLabelTag}>
                   <ThemedText style={styles.tipLabelText}>{t('dailyTipTitle')}</ThemedText>
                 </View>
               </View>
 
-              <ThemedText style={styles.tipMainText}>
+              <ThemedText style={[styles.tipMainText, isDarkMode && { color: '#ffecb3' }]}>
                 {t('dailyTipContent')}
               </ThemedText>
             </LinearGradient>
@@ -182,39 +186,39 @@ export default function ExploreScreen() {
 
           {/* --- 4. Detailed Guides (Clean Accordions) --- */}
           <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>{t('guidesTitle')}</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: isDarkMode ? '#A5D6A7' : '#1B5E20' }]}>{t('guidesTitle')}</ThemedText>
           </View>
 
           <View style={styles.guidesContainer}>
-            <Collapsible title={t('preventionStrategies')} titleColor="#1B5E20">
+            <Collapsible title={t('preventionStrategies')} titleColor={isDarkMode ? '#81C784' : '#1B5E20'}>
               <View style={styles.guideContent}>
                 {[
                   { num: '1', title: t('guideRotationTitle'), desc: t('guideRotationDesc') },
                   { num: '2', title: t('guideSpacingTitle'), desc: t('guideSpacingDesc') },
                   { num: '3', title: t('guideMulchingTitle'), desc: t('guideMulchingDesc') }
                 ].map((item, idx) => (
-                  <View key={idx} style={styles.guideItemRow}>
+                  <View key={idx} style={[styles.guideItemRow, { backgroundColor: isDarkMode ? '#1e1e1e' : '#FFF', borderColor: isDarkMode ? '#333' : 'rgba(0,0,0,0.02)' }]}>
                     <View style={styles.guideNumberBadge}>
                       <ThemedText style={styles.guideNumberText}>{item.num}</ThemedText>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <ThemedText style={styles.guideItemTitle}>{item.title}</ThemedText>
-                      <ThemedText style={styles.guideItemText}>{item.desc}</ThemedText>
+                      <ThemedText style={[styles.guideItemTitle, { color: isDarkMode ? '#fff' : '#2E3D2E' }]}>{item.title}</ThemedText>
+                      <ThemedText style={[styles.guideItemText, { color: isDarkMode ? '#aaa' : '#666' }]}>{item.desc}</ThemedText>
                     </View>
                   </View>
                 ))}
               </View>
             </Collapsible>
 
-            <Collapsible title={t('usingTheApp')} titleColor="#1B5E20">
+            <Collapsible title={t('usingTheApp')} titleColor={isDarkMode ? '#81C784' : '#1B5E20'}>
               <View style={styles.guideContent}>
                 {[t('guideAppStep1'), t('guideAppStep2'), t('guideAppStep3'), t('guideAppStep4')].map((step, idx) => (
-                  <View key={idx} style={styles.guideItemRow}>
+                  <View key={idx} style={[styles.guideItemRow, { backgroundColor: isDarkMode ? '#1e1e1e' : '#FFF', borderColor: isDarkMode ? '#333' : 'rgba(0,0,0,0.02)' }]}>
                     <View style={[styles.guideNumberBadge, { backgroundColor: '#4CAF50' }]}>
                       <ThemedText style={styles.guideNumberText}>{idx + 1}</ThemedText>
                     </View>
                     <View style={{ flex: 1, justifyContent: 'center' }}>
-                      <ThemedText style={[styles.guideItemText, { marginTop: 0 }]}>{step}</ThemedText>
+                      <ThemedText style={[styles.guideItemText, { marginTop: 0, color: isDarkMode ? '#aaa' : '#666' }]}>{step}</ThemedText>
                     </View>
                   </View>
                 ))}

@@ -14,7 +14,7 @@ export const BACKEND_HOST = '10.163.32.227';
 export const BACKEND_PORT = 5000;
 export const API_URL = Platform.OS === 'web'
     ? `http://localhost:${BACKEND_PORT}/api/`
-    : `https://floppy-numbers-boil.loca.lt/api/`; // Public tunnel to bypass WiFi isolation
+    : `http://${BACKEND_HOST}:${BACKEND_PORT}/api/`; // LAN IP is more reliable since loca.lt is down
 
 const api = axios.create({
     baseURL: API_URL,

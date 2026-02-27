@@ -7,21 +7,26 @@ import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAppTheme } from '../../context/ThemeContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { t, language } = useLanguage();
+  const { isDarkMode } = useAppTheme();
+  const themeParams = Colors[colorScheme ?? 'light'];
 
-  console.log('TabLayout Rendering. Language:', language);
+  console.log('TabLayout Rendering. Language:', language, 'Dark Mode:', isDarkMode);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#4caf50',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: isDarkMode ? '#81c784' : '#4caf50',
+        tabBarInactiveTintColor: isDarkMode ? '#888' : '#999',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
+          backgroundColor: isDarkMode ? '#1e1e1e' : '#ffffff',
+          borderTopColor: isDarkMode ? '#333' : '#e0e0e0',
           height: Platform.OS === 'ios' ? 90 : 60,
           paddingBottom: Platform.OS === 'ios' ? 30 : 10,
         },

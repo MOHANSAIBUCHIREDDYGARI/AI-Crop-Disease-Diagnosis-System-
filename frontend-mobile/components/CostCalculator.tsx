@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Calculator, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppTheme } from '../context/ThemeContext';
+import { Colors } from '../constants/theme';
 import { T } from './ui/T';
 
 interface Pesticide {
@@ -21,6 +23,8 @@ interface CostCalculatorProps {
  */
 const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionCostPerAcre = 500 }) => {
     const { t } = useLanguage();
+    const { isDarkMode, colorScheme } = useAppTheme();
+    const themeParams = Colors[colorScheme];
     const [landArea, setLandArea] = useState('1');
     const [unit, setUnit] = useState<'acres' | 'hectares'>('acres');
 
@@ -60,23 +64,24 @@ const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionC
     const costs = calculateCosts();
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: isDarkMode ? '#2c2c2c' : '#fff' }]}>
             <View style={styles.header}>
                 <Calculator size={24} color="#4caf50" />
-                <Text style={styles.title}>{t('costEstimation')}</Text>
+                <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#333' }]}>{t('costEstimation')}</Text>
             </View>
 
             <View style={styles.inputSection}>
-                <Text style={styles.label}>{t('landArea')}:</Text>
+                <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>{t('landArea')}:</Text>
                 <View style={styles.inputRow}>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { backgroundColor: isDarkMode ? '#1e1e1e' : '#f5f5f5', color: isDarkMode ? '#fff' : '#000', borderColor: isDarkMode ? '#444' : '#e0e0e0' }]}
                         value={landArea}
                         onChangeText={setLandArea}
                         keyboardType="decimal-pad"
                         placeholder={t('enterArea')}
+                        placeholderTextColor={isDarkMode ? '#888' : '#aaa'}
                     />
-                    <View style={styles.unitSelector}>
+                    <View style={[styles.unitSelector, { backgroundColor: isDarkMode ? '#1e1e1e' : '#f5f5f5' }]}>
                         <TouchableOpacity
                             style={[styles.unitButton, unit === 'acres' && styles.unitButtonActive]}
                             onPress={() => setUnit('acres')}
@@ -95,27 +100,27 @@ const CostCalculator: React.FC<CostCalculatorProps> = ({ pesticides, preventionC
 
             <View style={styles.resultsSection}>
                 {/* Treatment Cost (Expensive!) */}
-                <View style={[styles.costCard, { backgroundColor: '#ffebee' }]}>
-                    <TrendingUp size={20} color="#d32f2f" />
+                <View style={[styles.costCard, { backgroundColor: isDarkMode ? '#4a1515' : '#ffebee' }]}>
+                    <TrendingUp size={20} color={isDarkMode ? '#ff8a80' : '#d32f2f'} />
                     <View style={styles.costInfo}>
-                        <Text style={styles.costLabel}>{t('treatmentCost')}</Text>
-                        <Text style={[styles.costValue, { color: '#d32f2f' }]}>₹{costs.treatment.toFixed(0)}</Text>
+                        <Text style={[styles.costLabel, { color: isDarkMode ? '#ccc' : '#666' }]}>{t('treatmentCost')}</Text>
+                        <Text style={[styles.costValue, { color: isDarkMode ? '#ff8a80' : '#d32f2f' }]}>₹{costs.treatment.toFixed(0)}</Text>
                     </View>
                 </View>
 
                 {/* Prevention Cost (Cheaper!) */}
-                <View style={[styles.costCard, { backgroundColor: '#e8f5e9' }]}>
-                    <TrendingDown size={20} color="#2e7d32" />
+                <View style={[styles.costCard, { backgroundColor: isDarkMode ? '#1a3320' : '#e8f5e9' }]}>
+                    <TrendingDown size={20} color={isDarkMode ? '#81c784' : '#2e7d32'} />
                     <View style={styles.costInfo}>
-                        <Text style={styles.costLabel}>{t('preventionCost')}</Text>
-                        <Text style={[styles.costValue, { color: '#2e7d32' }]}>₹{costs.prevention.toFixed(0)}</Text>
+                        <Text style={[styles.costLabel, { color: isDarkMode ? '#ccc' : '#666' }]}>{t('preventionCost')}</Text>
+                        <Text style={[styles.costValue, { color: isDarkMode ? '#81c784' : '#2e7d32' }]}>₹{costs.prevention.toFixed(0)}</Text>
                     </View>
                 </View>
 
                 {/* Show how much they save by being proactive */}
                 {costs.savings > 0 && (
-                    <View style={styles.savingsCard}>
-                        <Text style={styles.savingsText}>
+                    <View style={[styles.savingsCard, { backgroundColor: isDarkMode ? '#3e2723' : '#fff3e0', borderColor: isDarkMode ? '#ff9800' : '#ffb74d' }]}>
+                        <Text style={[styles.savingsText, { color: isDarkMode ? '#ffb74d' : '#e65100' }]}>
                             💰 {t('savingsMessage')} ₹{costs.savings.toFixed(0)}!
                         </Text>
                     </View>

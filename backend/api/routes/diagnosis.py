@@ -420,17 +420,19 @@ def get_history():
                 'created_at': record.get('created_at')
             }
             
-            
             # Translate each record so it shows up in the user's language
             if language != 'en':
-                translated = translate_diagnosis_result(item, language)
-                
-                if 'disease_local' in translated:
-                    item['disease'] = translated['disease_local']
-                if 'crop_local' in translated:
-                    item['crop'] = translated['crop_local']
-                if 'stage_local' in translated:
-                    item['stage'] = translated['stage_local']
+                try:
+                    translated = translate_diagnosis_result(item, language)
+                    
+                    if 'disease_local' in translated:
+                        item['disease'] = translated['disease_local']
+                    if 'crop_local' in translated:
+                        item['crop'] = translated['crop_local']
+                    if 'stage_local' in translated:
+                        item['stage'] = translated['stage_local']
+                except Exception as translate_err:
+                    print(f"DEBUG: Translation failed for history item: {translate_err}")
             
             history_list.append(item)
         
@@ -439,7 +441,7 @@ def get_history():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@diagnosis_bp.route('/<int:diagnosis_id>', methods=['GET'])
+@diagnosis_bp.route('/<diagnosis_id>', methods=['GET'])
 def get_diagnosis_details(diagnosis_id):
     """Get the full details of a specific diagnosis"""
     try:
@@ -508,17 +510,91 @@ def get_diagnosis_details(diagnosis_id):
                 'total_cost': cost_data[0]['total_cost']
             }
         
+        # Format the response exactly like /detect so results.tsx parses it cleanly
+        
+        # 1. Structure the prediction object
+        prediction = {
+            'crop': diagnosis.get('crop'),
+            'disease': diagnosis.get('disease'),
+            'confidence': diagnosis.get('confidence'),
+            'severity_percent': diagnosis.get('severity_percent'),
+            'stage': diagnosis.get('stage')
+        }
+        
+        # Translate the prediction labels if needed based on the user language
+        language = 'en'
+        try:
+            user_query = {'_id': ObjectId(user_id)}
+        except InvalidId:
+            user_query = {'id': user_id}
+            
+        user = db.execute_query(collection='users', mongo_query=user_query)
+        if user:
+             language = user[0].get('preferred_language', 'en')
+             
+        translated_result = translate_diagnosis_result(prediction, language)
+        
+        # 2. Re-fetch disease_info using the original logic
+        disease_data = {}
+        try:
+            disease_info_db = db.execute_query(
+                collection='diseases',
+                mongo_query={'crop': diagnosis.get('crop'), 'disease_name': diagnosis.get('disease')}
+            )
+            
+            if disease_info_db:
+                disease_data = {
+                    'description': disease_info_db[0]['description'],
+                    'symptoms': disease_info_db[0]['symptoms'],
+                    'prevention_steps': disease_info_db[0]['prevention_steps']
+                }
+                
+                # Translate it
+                disease_data = translate_disease_info(disease_data, language)
+        except Exception as e:
+            print(f"DEBUG: Error getting disease info: {e}")
+            
+        # 3. Structure Pesticide Recommendations
+        # Re-fetch from the pesticides collection using the service (same as /detect)
+        # This gives us the correctly-structured data with dosage_per_acre, cost_per_liter
+        pesticide_recommendations = {}
+        try:
+            pesticide_recommendations = get_severity_based_recommendations(
+                diagnosis.get('disease'),
+                diagnosis.get('severity_percent'),
+                diagnosis.get('crop')
+            )
+            
+            # Translate recommendations if needed
+            if language != 'en' and pesticide_recommendations:
+                if 'treatment_approach' in pesticide_recommendations:
+                    pesticide_recommendations['treatment_approach'] = translate_text(
+                        pesticide_recommendations['treatment_approach'], language
+                    )
+                if 'application_note' in pesticide_recommendations:
+                    pesticide_recommendations['application_note'] = translate_text(
+                        pesticide_recommendations['application_note'], language
+                    )
+                
+                new_pests = []
+                for pest in pesticide_recommendations.get('recommended_pesticides', []):
+                    new_pests.append(translate_pesticide_info(pest, language))
+                pesticide_recommendations['recommended_pesticides'] = new_pests
+                
+        except Exception as e:
+            print(f"DEBUG: Error compiling pesticide recommendations for history: {e}")
+            pesticide_recommendations = {'recommended_pesticides': []}
+            
+        ui_labels = get_translated_ui_labels(language)
+        
         response = {
-            'diagnosis': {
-                'id': str(diagnosis.get('_id') or diagnosis.get('id')),
-                'crop': diagnosis.get('crop'),
-                'disease': diagnosis.get('disease'),
-                'confidence': diagnosis.get('confidence'),
-                'severity_percent': diagnosis.get('severity_percent'),
-                'stage': diagnosis.get('stage'),
-                'created_at': diagnosis.get('created_at')
-            },
-            'pesticides': pesticide_list,
+            'diagnosis_id': str(diagnosis.get('_id') or diagnosis.get('id')),
+            'prediction': translated_result,
+            'disease_info': disease_data,
+            'pesticide_recommendations': pesticide_recommendations,
+            'weather_advice': None, # We don't save weather advice to history
+            'language': language,
+            'ui_translations': ui_labels,
             'cost': cost_info
         }
         

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { User, LogOut, Globe, Bell, Shield, Info, HelpCircle, ChevronRight, Languages } from 'lucide-react-native';
+import { User, LogOut, Globe, Shield, Info, HelpCircle, ChevronRight, Languages, Moon, Sun } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppTheme } from '../context/ThemeContext';
+import { Colors } from '../constants/theme';
 import api from '../services/api';
 
 const LANGUAGES = [
@@ -20,9 +22,41 @@ const LANGUAGES = [
 export default function ProfileScreen() {
     const { user, signOut, isGuest, updateUser } = useAuth();
     const { language, setLanguage, t } = useLanguage();
-    console.log('ProfileScreen rendered. Current language:', language);
-    const [notifications, setNotifications] = useState(true);
+    const { isDarkMode, toggleTheme, colorScheme } = useAppTheme();
+    const themeParams = Colors[colorScheme];
+
+    console.log('ProfileScreen rendered. Current language:', language, 'Dark mode:', isDarkMode);
+
     const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+    const [translatedName, setTranslatedName] = useState<string>('');
+
+    // Translate the user's name dynamically when language changes
+    useEffect(() => {
+        const translateDynamicContent = async () => {
+            const nameToTranslate = isGuest ? t('guestUser') : (user?.name || '');
+
+            if (language === 'en' || !nameToTranslate) {
+                setTranslatedName(nameToTranslate);
+                return;
+            }
+
+            try {
+                const response = await api.post('translations/batch', {
+                    texts: { name: nameToTranslate },
+                    target_language: language
+                });
+
+                if (response.data && response.data.name) {
+                    setTranslatedName(response.data.name);
+                }
+            } catch (error) {
+                console.log('Error translating profile name:', error);
+                setTranslatedName(nameToTranslate);
+            }
+        };
+
+        translateDynamicContent();
+    }, [language, user, t, isGuest]);
 
     const handleSignOut = async () => {
         const doLogout = async () => {
@@ -86,14 +120,14 @@ export default function ProfileScreen() {
     };
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? themeParams.background : '#f8f8f8' }]}>
             {/* Header: Avatar & Name */}
-            <View style={styles.profileHeader}>
-                <View style={styles.avatarCircle}>
+            <View style={[styles.profileHeader, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+                <View style={[styles.avatarCircle, { backgroundColor: isDarkMode ? '#2e3b32' : '#e8f5e9' }]}>
                     <User size={40} color="#4caf50" />
                 </View>
-                <Text style={styles.userName}>{isGuest ? t('guestUser') : user?.name}</Text>
-                <Text style={styles.userEmail}>{isGuest ? t('browseMode') : user?.email}</Text>
+                <Text style={[styles.userName, { color: isDarkMode ? '#fff' : '#333' }]}>{translatedName || (isGuest ? t('guestUser') : user?.name)}</Text>
+                <Text style={[styles.userEmail, { color: isDarkMode ? '#aaa' : '#666' }]}>{isGuest ? t('browseMode') : user?.email}</Text>
 
                 {isGuest && (
                     <TouchableOpacity style={styles.registerCTA} onPress={() => router.replace('/login')}>
@@ -103,19 +137,19 @@ export default function ProfileScreen() {
             </View>
 
             {/* Settings Section */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('preferences')}</Text>
+            <View style={[styles.section, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+                <Text style={[styles.sectionTitle, { color: isDarkMode ? '#888' : '#999' }]}>{t('preferences')}</Text>
 
                 {/* Language Picker Toggle */}
                 <TouchableOpacity style={styles.menuItem} onPress={() => setShowLanguagePicker(!showLanguagePicker)}>
-                    <View style={styles.menuIconCircle}>
+                    <View style={[styles.menuIconCircle, { backgroundColor: isDarkMode ? '#2e3b32' : '#e8f5e9' }]}>
                         <Languages size={20} color="#4caf50" />
                     </View>
                     <View style={styles.menuContent}>
-                        <Text style={styles.menuLabel}>{t('appLanguage')}</Text>
-                        <Text style={styles.menuSubLabel}>{LANGUAGES.find(l => l.code === language)?.nativeName}</Text>
+                        <Text style={[styles.menuLabel, { color: isDarkMode ? '#fff' : '#333' }]}>{t('appLanguage')}</Text>
+                        <Text style={[styles.menuSubLabel, { color: isDarkMode ? '#aaa' : '#888' }]}>{LANGUAGES.find(l => l.code === language)?.nativeName}</Text>
                     </View>
-                    <ChevronRight size={20} color="#ccc" />
+                    <ChevronRight size={20} color={isDarkMode ? '#555' : '#ccc'} />
                 </TouchableOpacity>
 
                 {/* Dropdown for Languages */}
@@ -124,10 +158,18 @@ export default function ProfileScreen() {
                         {LANGUAGES.map((lang) => (
                             <TouchableOpacity
                                 key={lang.code}
-                                style={[styles.langOption, language === lang.code && styles.langOptionSelected]}
+                                style={[
+                                    styles.langOption,
+                                    { backgroundColor: isDarkMode ? '#333' : '#f9f9f9', borderColor: isDarkMode ? '#444' : '#eee' },
+                                    language === lang.code && styles.langOptionSelected
+                                ]}
                                 onPress={() => changeLanguage(lang.code)}
                             >
-                                <Text style={[styles.langOptionText, language === lang.code && styles.langOptionTextSelected]}>
+                                <Text style={[
+                                    styles.langOptionText,
+                                    { color: isDarkMode ? '#ccc' : '#666' },
+                                    language === lang.code && styles.langOptionTextSelected
+                                ]}>
                                     {lang.nativeName}
                                 </Text>
                             </TouchableOpacity>
@@ -136,71 +178,72 @@ export default function ProfileScreen() {
                 )}
 
                 <View style={styles.menuItem}>
-                    <View style={[styles.menuIconCircle, { backgroundColor: '#e3f2fd' }]}>
-                        <Bell size={20} color="#1976d2" />
+                    <View style={[styles.menuIconCircle, { backgroundColor: isDarkMode ? '#1e3a5f' : '#e3f2fd' }]}>
+                        {isDarkMode ? <Moon size={20} color="#64b5f6" /> : <Sun size={20} color="#f59e0b" />}
                     </View>
                     <View style={styles.menuContent}>
-                        <Text style={styles.menuLabel}>{t('pushNotifications')}</Text>
+                        <Text style={[styles.menuLabel, { color: isDarkMode ? '#fff' : '#333' }]}>{t('darkMode')}</Text>
+                        <Text style={[styles.menuSubLabel, { color: isDarkMode ? '#aaa' : '#888' }]}>{isDarkMode ? 'On' : 'Off'}</Text>
                     </View>
                     <Switch
-                        value={notifications}
-                        onValueChange={setNotifications}
+                        value={isDarkMode}
+                        onValueChange={toggleTheme}
                         trackColor={{ false: "#ddd", true: "#a5d6a7" }}
-                        thumbColor={notifications ? "#4caf50" : "#f4f3f4"}
+                        thumbColor={isDarkMode ? "#4caf50" : "#f4f3f4"}
                     />
                 </View>
             </View>
 
             {/* Legal & Help */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('supportLegal')}</Text>
+            <View style={[styles.section, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+                <Text style={[styles.sectionTitle, { color: isDarkMode ? '#888' : '#999' }]}>{t('supportLegal')}</Text>
 
                 <TouchableOpacity
                     style={styles.menuItem}
                     onPress={() => router.push('/help')}
                 >
-                    <View style={[styles.menuIconCircle, { backgroundColor: '#f5f5f5' }]}>
-                        <HelpCircle size={20} color="#666" />
+                    <View style={[styles.menuIconCircle, { backgroundColor: isDarkMode ? '#333' : '#f5f5f5' }]}>
+                        <HelpCircle size={20} color={isDarkMode ? '#aaa' : '#666'} />
                     </View>
                     <View style={styles.menuContent}>
-                        <Text style={styles.menuLabel}>{t('helpCenter')}</Text>
+                        <Text style={[styles.menuLabel, { color: isDarkMode ? '#fff' : '#333' }]}>{t('helpCenter')}</Text>
                     </View>
-                    <ChevronRight size={20} color="#ccc" />
+                    <ChevronRight size={20} color={isDarkMode ? '#555' : '#ccc'} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     style={styles.menuItem}
                     onPress={() => router.push('/privacy')}
                 >
-                    <View style={[styles.menuIconCircle, { backgroundColor: '#f5f5f5' }]}>
-                        <Shield size={20} color="#666" />
+                    <View style={[styles.menuIconCircle, { backgroundColor: isDarkMode ? '#333' : '#f5f5f5' }]}>
+                        <Shield size={20} color={isDarkMode ? '#aaa' : '#666'} />
                     </View>
                     <View style={styles.menuContent}>
-                        <Text style={styles.menuLabel}>{t('privacyPolicy')}</Text>
+                        <Text style={[styles.menuLabel, { color: isDarkMode ? '#fff' : '#333' }]}>{t('privacyPolicy')}</Text>
                     </View>
-                    <ChevronRight size={20} color="#ccc" />
+                    <ChevronRight size={20} color={isDarkMode ? '#555' : '#ccc'} />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.menuItem}>
-                    <View style={[styles.menuIconCircle, { backgroundColor: '#f5f5f5' }]}>
-                        <Info size={20} color="#666" />
+                    <View style={[styles.menuIconCircle, { backgroundColor: isDarkMode ? '#333' : '#f5f5f5' }]}>
+                        <Info size={20} color={isDarkMode ? '#aaa' : '#666'} />
                     </View>
                     <View style={styles.menuContent}>
-                        <Text style={styles.menuLabel}>{t('appVersion')}</Text>
-                        <Text style={styles.menuSubLabel}>v1.0.0</Text>
+                        <Text style={[styles.menuLabel, { color: isDarkMode ? '#fff' : '#333' }]}>{t('appVersion')}</Text>
+                        <Text style={[styles.menuSubLabel, { color: isDarkMode ? '#aaa' : '#888' }]}>v1.0.0</Text>
                     </View>
                 </TouchableOpacity>
             </View>
 
             {!isGuest && (
-                <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-                    <LogOut size={20} color="#d32f2f" style={{ marginRight: 12 }} />
-                    <Text style={styles.logoutText}>{t('logOut')}</Text>
+                <TouchableOpacity style={[styles.logoutButton, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]} onPress={handleSignOut}>
+                    <LogOut size={20} color="#ef5350" style={{ marginRight: 12 }} />
+                    <Text style={[styles.logoutText, { color: '#ef5350' }]}>{t('logOut')}</Text>
                 </TouchableOpacity>
             )}
 
             <View style={styles.footer}>
-                <Text style={styles.footerText}>{t('madeWithLove')}</Text>
+                <Text style={[styles.footerText, { color: isDarkMode ? '#555' : '#ccc' }]}>{t('madeWithLove')}</Text>
             </View>
         </ScrollView>
     );
