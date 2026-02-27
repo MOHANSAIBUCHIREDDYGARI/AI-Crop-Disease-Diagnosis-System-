@@ -25,24 +25,37 @@ export default function RegisterScreen() {
 
         setLoading(true);
         try {
-            // Create a new account on the server
-            const response = await api.post('user/register', {
+            // Step 1: Create account
+            await api.post('user/register', {
                 email,
                 password,
                 name,
                 farm_size: farmSize ? parseFloat(farmSize) : 0,
                 preferred_language: 'en'
             });
-
-            // Ask the user to login manually
-            Alert.alert(t('success'), t('registerSuccess'));
-            router.replace('/login');
         } catch (error: any) {
+            // Account creation failed (e.g. email already exists)
             const message = error.response?.data?.error || t('registerErrorInvalid');
             Alert.alert(t('error'), message);
-        } finally {
             setLoading(false);
+            return;
         }
+
+        // Step 2: Try to send OTP (account already created)
+        let otpError = '';
+        try {
+            await api.post('user/send-otp', { email });
+        } catch (error: any) {
+            // OTP email failed — account still exists, let user retry from verify screen
+            otpError = error.response?.data?.error || 'Failed to send OTP email. Check server SMTP settings.';
+        }
+
+        setLoading(false);
+        // Navigate to verify-otp screen; pass any OTP error so it can show a banner
+        router.replace({
+            pathname: '/verify-otp',
+            params: { email, otpError }
+        });
     };
 
     return (
@@ -175,6 +188,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         fontWeight: '500',
+        backgroundColor: 'transparent',
+        outlineStyle: 'none' as any,
     },
     registerButton: {
         backgroundColor: '#4caf50',

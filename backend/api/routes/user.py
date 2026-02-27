@@ -16,6 +16,7 @@ from database.db_connection import db
 from config.settings import settings
 from utils.validators import validate_user_registration, validate_email, validate_language
 from services.language_service import get_translated_ui_labels
+from services.email_service import generate_otp, send_otp_email, store_otp, verify_otp
 
 # Create a 'blueprint' for all user-related routes (registration, login, profile)
 user_bp = Blueprint('user', __name__)
@@ -63,7 +64,7 @@ def register():
         )
         
         if existing_user:
-            return jsonify({'error': 'Email already registered'}), 400
+            return jsonify({'error': 'An account with this email already exists. Please login instead.'}), 409
         
         # Scramble the password so it's safe even if our database is seen
         password_hash = bcrypt.hashpw(
@@ -71,7 +72,7 @@ def register():
             bcrypt.gensalt()
         ).decode('utf-8')
         
-        # Save the new user to the database
+        # Save the new user to the database (email not verified yet)
         user_id = db.execute_insert(
             collection='users',
             document={
@@ -82,21 +83,20 @@ def register():
                 'farm_location': data.get('farm_location', ''),
                 'farm_size': data.get('farm_size', 0),
                 'preferred_language': data.get('preferred_language', 'en'),
+                'is_email_verified': False,
                 'created_at': datetime.datetime.utcnow()
             }
         )
         
-        # Create a token immediately so they are logged in right after signing up
-        token = generate_token(user_id)
-        
         return jsonify({
-            'message': 'User registered successfully',
+            'message': 'User registered successfully. Please verify your email.',
             'user_id': user_id,
-            'token': token
+            'email': data['email']
         }), 201
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @user_bp.route('/login', methods=['POST'])
 def login():

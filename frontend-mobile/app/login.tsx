@@ -13,13 +13,15 @@ export default function LoginScreen() {
     const [loading, setLoading] = useState(false);
     const [emailFocused, setEmailFocused] = useState(false);
     const [passwordFocused, setPasswordFocused] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
     const { signIn, continueAsGuest } = useAuth();
     const { t } = useLanguage();
     const router = useRouter();
 
     const handleLogin = async () => {
+        setErrorMessage('');
         if (!email || !password) {
-            Alert.alert(t('error'), t('loginErrorMissing'));
+            setErrorMessage('Please enter both email and password.');
             return;
         }
 
@@ -29,8 +31,8 @@ export default function LoginScreen() {
             await signIn(response.data.token, response.data.user);
             router.replace('/(tabs)');
         } catch (error: any) {
-            const message = error.response?.data?.error || t('loginErrorInvalid');
-            Alert.alert(t('loginErrorTitle'), message);
+            const serverMsg = error.response?.data?.error;
+            setErrorMessage(serverMsg || 'Invalid email or password. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -55,6 +57,13 @@ export default function LoginScreen() {
                 </View>
 
                 <View style={styles.form}>
+                    {/* Inline error banner */}
+                    {errorMessage ? (
+                        <View style={styles.errorBanner}>
+                            <Text style={styles.errorBannerText}>⚠️  {errorMessage}</Text>
+                        </View>
+                    ) : null}
+
                     {/* Email Field */}
                     <View style={styles.fieldWrapper}>
                         <T style={[styles.fieldLabel, emailFocused && styles.fieldLabelFocused]}>emailPlaceholder</T>
@@ -98,10 +107,19 @@ export default function LoginScreen() {
                         </TouchableOpacity>
                     </View>
 
+                    {/* Forgot Password */}
+                    <TouchableOpacity
+                        style={styles.forgotPasswordRow}
+                        onPress={() => router.push('/forgot-password')}
+                    >
+                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                         style={styles.loginButton}
                         onPress={handleLogin}
                         disabled={loading}
+
                     >
                         {loading ? (
                             <ActivityIndicator color="#fff" />
@@ -137,6 +155,21 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
+    },
+    errorBanner: {
+        backgroundColor: '#ffebee',
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        marginBottom: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: '#e53935',
+    },
+    errorBannerText: {
+        color: '#c62828',
+        fontSize: 14,
+        fontWeight: '600',
+        lineHeight: 20,
     },
     scrollContainer: {
         flexGrow: 1,
@@ -221,9 +254,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         fontWeight: '500',
-        outlineWidth: 0,
         outlineStyle: 'none' as any,
-        borderWidth: 0,
         backgroundColor: 'transparent',
     },
     loginButton: {
@@ -257,6 +288,18 @@ const styles = StyleSheet.create({
         color: '#2e7d32',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    forgotPasswordRow: {
+        alignSelf: 'flex-end',
+        marginTop: 6,
+        marginBottom: 4,
+        paddingVertical: 4,
+        paddingHorizontal: 2,
+    },
+    forgotPasswordText: {
+        color: '#4caf50',
+        fontSize: 14,
+        fontWeight: '600',
     },
     footer: {
         flexDirection: 'row',
