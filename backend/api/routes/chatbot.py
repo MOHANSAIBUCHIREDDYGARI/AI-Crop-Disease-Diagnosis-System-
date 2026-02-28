@@ -44,9 +44,9 @@ def log_debug(message):
 if GEMINI_AVAILABLE and settings.GOOGLE_GEMINI_API_KEY:
     try:
         genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
-        # gemini-1.5-flash: fastest Gemini model, ideal for low-latency chatbot on Render
-        gemma_model = genai.GenerativeModel('gemini-1.5-flash')
-        log_debug("Gemini AI (gemini-1.5-flash) configured successfully")
+        # Using working model 'gemma-3-12b-it' which supports multimodal input
+        gemma_model = genai.GenerativeModel('models/gemma-3-27b-it')
+        log_debug("Gemini AI (Gemma 3) configured successfully")
     except Exception as e:
         log_debug(f"Gemini AI configuration failed: {e}")
         gemma_model = None
@@ -394,10 +394,10 @@ Respond ONLY in {lang_name}.
             response = gemma_model.generate_content(
                 full_prompt,
                 generation_config=genai.types.GenerationConfig(
-                    max_output_tokens=400,   # Shorter = faster response on Render
+                    max_output_tokens=512,   # Keep answers concise and fast
                     temperature=0.4,
                 ),
-                request_options={'timeout': 20}  # 20s leaves buffer within Render's 30s limit
+                request_options={'timeout': 15}  # Fail fast instead of hanging
             )
             return response.text
         except Exception as e:
