@@ -20,19 +20,46 @@ const { width } = Dimensions.get('window');
 // --- Configuration ---
 // These are the crops our AI knows how to diagnose.
 // Ideally, this list mimics what the backend supports.
-const CROP_OPTIONS = [
-  { id: 'auto', name: 'Auto Detect (AI)', image: require('../../assets/images/icon.png') },
-  { id: 'tomato', name: 'Tomato', image: require('../../assets/images/tomato.png') },
-  { id: 'rice', name: 'Rice', image: require('../../assets/images/rice.png') },
-  { id: 'potato', name: 'Potato', image: require('../../assets/images/potato.png') },
-  { id: 'grape', name: 'Grape', image: require('../../assets/images/grape.png') },
-  { id: 'maize', name: 'Maize', image: require('../../assets/images/maize.png') },
+const CROP_IMAGES: Record<string, any> = {
+  auto: require('../../assets/images/icon.png'),
+  tomato: require('../../assets/images/tomato.png'),
+  rice: require('../../assets/images/rice.png'),
+  potato: require('../../assets/images/potato.png'),
+  grape: require('../../assets/images/grape.png'),
+  maize: require('../../assets/images/maize.png'),
+};
+
+const DEFAULT_CROPS = [
+  { id: 'auto', name: 'Auto Detect (AI)', image: CROP_IMAGES['auto'] },
+  { id: 'tomato', name: 'Tomato', image: CROP_IMAGES['tomato'] },
+  { id: 'rice', name: 'Rice', image: CROP_IMAGES['rice'] },
+  { id: 'potato', name: 'Potato', image: CROP_IMAGES['potato'] },
+  { id: 'grape', name: 'Grape', image: CROP_IMAGES['grape'] },
+  { id: 'maize', name: 'Maize', image: CROP_IMAGES['maize'] },
 ];
 
 export default function DashboardScreen() {
   // --- Navigation & Permissions ---
   const router = useRouter(); // Helps us move between screens
   const [permission, requestPermission] = useCameraPermissions(); // Ask the phone nicely for camera access
+
+  const [activeCrops, setActiveCrops] = useState<any[]>(DEFAULT_CROPS);
+
+  useEffect(() => {
+    fetch(`${API_URL.replace('/api/', '')}/api`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.supported_crops) {
+          const bgCrops = data.supported_crops.map((c: string) => ({
+            id: c,
+            name: c,
+            image: CROP_IMAGES[c] || CROP_IMAGES['auto']
+          }));
+          setActiveCrops([{ id: 'auto', name: 'Auto Detect (AI)', image: CROP_IMAGES['auto'] }, ...bgCrops]);
+        }
+      })
+      .catch(err => console.log("Backend crops fetch error:", err));
+  }, []);
 
   // --- App State (What's happening right now) ---
   const [selectedCrop, setSelectedCrop] = useState('tomato'); // crop selected by farmer
@@ -364,14 +391,21 @@ export default function DashboardScreen() {
         const token = await getItem('userToken');
 
         console.log('DEBUG: Sending web request to API...', apiUrl);
+
+        // Abort if the server takes more than 110 seconds (Render cold starts are slow)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 110000);
+
         const fetchResponse = await fetch(apiUrl, {
           method: 'POST',
           body: webFormData,
+          signal: controller.signal,
           headers: {
             'Bypass-Tunnel-Reminder': 'true',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
         });
+        clearTimeout(timeoutId);
 
         if (!fetchResponse.ok) {
           const errorData = await fetchResponse.json();
@@ -410,9 +444,14 @@ export default function DashboardScreen() {
 
         console.log('DEBUG: Sending mobile request to API using fetch...', apiUrl);
 
+        // Abort if the server takes more than 110 seconds (Render cold starts are slow)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 110000);
+
         const fetchResponse = await fetch(apiUrl, {
           method: 'POST',
           body: mobileFormData,
+          signal: controller.signal,
           headers: {
             'Accept': 'application/json',
             'Bypass-Tunnel-Reminder': 'true',
@@ -421,6 +460,7 @@ export default function DashboardScreen() {
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
         });
+        clearTimeout(timeoutId);
 
         if (!fetchResponse.ok) {
           const errorData = await fetchResponse.json().catch(() => ({ error: 'Server returned ' + fetchResponse.status }));
@@ -491,6 +531,13 @@ export default function DashboardScreen() {
             { text: t('cancel'), style: 'cancel' }
           ]
         );
+      } else if (error.name === 'AbortError') {
+        // Request timed out (took longer than 110 seconds)
+        console.log('⏱️ Request timed out');
+        Alert.alert(
+          t('error'),
+          'The server is taking too long to respond. The server may be waking up — please try again in a moment.'
+        );
       } else if (!error.response) {
         // Pure network error - show more helpful message
         console.log('❌ Network error - cannot reach backend at', API_URL);
@@ -547,7 +594,7 @@ export default function DashboardScreen() {
         {/* Crop Selection Chips */}
         <View style={styles.cropSelectorContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
-            {CROP_OPTIONS.map((crop) => (
+            {activeCrops.map((crop) => (
               <TouchableOpacity
                 key={crop.id}
                 style={[
@@ -744,16 +791,16 @@ export default function DashboardScreen() {
       {/* Grid of supported crops (Visual Reference) */}
       <View style={styles.section}>
         <T style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>supportedCrops</T>
-        <View style={styles.grid}>
-          {CROP_OPTIONS.filter(crop => crop.id !== 'auto').map((crop) => (
-            <View key={crop.id} style={[styles.gridItem, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 24, paddingBottom: 8, gap: 16 }}>
+          {activeCrops.filter(crop => crop.id !== 'auto').map((crop) => (
+            <View key={crop.id} style={[styles.gridItem, { width: 85, backgroundColor: isDarkMode ? '#1e1e1e' : '#fff', borderRadius: 16, paddingVertical: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }]}>
               <View style={styles.gridIconImage}>
                 <Image source={crop.image} style={styles.cropImage} />
               </View>
-              <T style={[styles.gridLabel, { color: isDarkMode ? '#fff' : '#333' }]}>{`crop_${crop.id}` as any}</T>
+              <T style={[styles.gridLabel, { color: isDarkMode ? '#fff' : '#333', textAlign: 'center' }]}>{`crop_${crop.id}` as any}</T>
             </View>
           ))}
-        </View>
+        </ScrollView>
       </View>
 
       {/* Upsell for Guest Users to Register */}
@@ -1080,7 +1127,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   upsellBtnText: {
-    color: '#2e7d32',
+    color: '#fff',
     fontWeight: 'bold',
     fontSize: 12,
   },
