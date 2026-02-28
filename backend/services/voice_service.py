@@ -1,6 +1,7 @@
 from gtts import gTTS
 import os
 import hashlib
+import threading
 from typing import Optional
 from config.settings import settings
 
@@ -35,12 +36,34 @@ def generate_voice(text: str, language: str = 'en', slow: bool = False) -> Optio
         
         gtts_lang = lang_map.get(language, 'en')
         
-        # Generate the audio
-        tts = gTTS(text=text, lang=gtts_lang, slow=slow)
-        tts.save(filepath)
-        
-        return filepath
-        
+        # Generate the audio with a timeout so it doesn't block the response
+        result_holder = [None]
+        error_holder = [None]
+
+        def _generate():
+            try:
+                tts = gTTS(text=text, lang=gtts_lang, slow=slow)
+                tts.save(filepath)
+                result_holder[0] = filepath
+            except Exception as ex:
+                error_holder[0] = ex
+
+        thread = threading.Thread(target=_generate)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout=8)  # Wait at most 8 seconds for gTTS
+
+        if thread.is_alive():
+            # gTTS took too long — skip voice to avoid blocking the response
+            print("Warning: gTTS timed out after 8s, skipping voice generation.")
+            return None
+
+        if error_holder[0]:
+            print(f"Error generating voice: {error_holder[0]}")
+            return None
+
+        return result_holder[0]
+
     except Exception as e:
         print(f"Error generating voice: {e}")
         return None
