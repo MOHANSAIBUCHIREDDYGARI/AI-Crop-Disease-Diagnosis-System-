@@ -12,7 +12,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const systemColorScheme = useSystemColorScheme();
-    const [isDarkMode, setIsDarkMode] = useState<boolean>(systemColorScheme === 'dark');
+    const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
     useEffect(() => {
         loadThemePreference();
@@ -24,7 +24,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             if (storedTheme !== null) {
                 setIsDarkMode(storedTheme === 'dark');
             } else {
-                setIsDarkMode(systemColorScheme === 'dark');
+                setIsDarkMode(false);
             }
         } catch (e) {
             console.error('Failed to load theme preference', e);
