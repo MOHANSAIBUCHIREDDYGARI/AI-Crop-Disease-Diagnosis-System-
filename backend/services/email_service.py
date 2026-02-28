@@ -89,15 +89,22 @@ def send_otp_email(to_email: str, otp: str, purpose: str = 'verify') -> bool:
 
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             server.ehlo()
-            server.starttls()
+            server.starttls()   # Upgrade to TLS (required for port 587)
+            server.ehlo()
             server.login(settings.SMTP_USER, settings.SMTP_PASS)
             server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
 
         print(f"[EmailService] OTP email sent to {to_email} (purpose: {purpose})")
         return True
 
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"[EmailService] SMTP Authentication failed - check SMTP_USER and SMTP_PASS: {e}")
+        return False
+    except smtplib.SMTPException as e:
+        print(f"[EmailService] SMTP error: {e}")
+        return False
     except Exception as e:
-        print(f"[EmailService] Failed to send email: {e}")
+        print(f"[EmailService] Unexpected error sending email: {type(e).__name__}: {e}")
         return False
 
 
