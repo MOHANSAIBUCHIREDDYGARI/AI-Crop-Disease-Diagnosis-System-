@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 import bcrypt
 import jwt
 import datetime
+import threading
 import sys
 import os
 
@@ -324,14 +325,16 @@ def send_otp():
         if not user:
             return jsonify({'error': 'No account found with this email'}), 404
 
-        # Generate and store OTP
+        # Generate and store OTP FIRST (before sending email)
         otp = generate_otp()
         store_otp(email, otp, purpose='verify')
 
-        # Send the email
-        sent = send_otp_email(email, otp, purpose='verify')
-        if not sent:
-            return jsonify({'error': 'Failed to send OTP email. Check SMTP settings in .env'}), 500
+        # Send email in background — don't block the response
+        def _send():
+            sent = send_otp_email(email, otp, purpose='verify')
+            if not sent:
+                print(f"[send_otp] Background email to {email} failed")
+        threading.Thread(target=_send, daemon=True).start()
 
         return jsonify({'message': f'OTP sent to {email}'}), 200
 
@@ -403,12 +406,15 @@ def forgot_password():
             # Return success anyway (prevents email enumeration attacks)
             return jsonify({'message': 'If the email is registered, an OTP will be sent.'}), 200
 
+        # Store OTP FIRST, then email in background
         otp = generate_otp()
         store_otp(email, otp, purpose='reset')
-        sent = send_otp_email(email, otp, purpose='reset')
 
-        if not sent:
-            return jsonify({'error': 'Failed to send OTP email. Check SMTP settings in .env'}), 500
+        def _send():
+            sent = send_otp_email(email, otp, purpose='reset')
+            if not sent:
+                print(f"[forgot_password] Background email to {email} failed")
+        threading.Thread(target=_send, daemon=True).start()
 
         return jsonify({'message': f'Password reset OTP sent to {email}'}), 200
 
