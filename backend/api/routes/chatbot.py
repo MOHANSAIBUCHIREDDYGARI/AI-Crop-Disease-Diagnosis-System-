@@ -519,8 +519,17 @@ def get_fallback_response(message: str, language: str = 'en', context: str = '')
         elif any(w in message_lower for w in ['hopper', 'jassid', 'hopper burn']): response_text = R['cotton_leaf_hoppers']
         else: response_text = R['pesticide_general']
 
+    # Cross-crop unique disease matching (if user forgot to say the crop name)
+    elif 'black rot' in message_lower: response_text = R['grape_black_rot']
+    elif 'downy mildew' in message_lower: response_text = R['grape_downy_mildew']
+    elif 'powdery mildew' in message_lower: response_text = R['grape_powdery_mildew']
+    elif 'hispa' in message_lower: response_text = R['rice_hispa']
+    elif any(w in message_lower for w in ['armyworm', 'faw']): response_text = R['maize_fall_armyworm']
+    elif any(w in message_lower for w in ['yellow curl', 'tylcv']): response_text = R['tomato_yellow_curl']
+    elif 'scurf' in message_lower: response_text = R['potato_black_scurf']
+
     # General Topic Logic
-    elif any(w in message_lower for w in ['pesticide', 'spray', 'chemical', 'fungicide']): response_text = R['pesticide_general']
+    elif any(w in message_lower for w in ['pesticide', 'spray', 'chemical', 'fungicide', 'treatment', 'cure', 'medicine']): response_text = R['pesticide_general']
     elif any(w in message_lower for w in ['cost', 'price', 'money', 'expensive', 'rupee', 'bill']): response_text = R['cost']
     elif any(w in message_lower for w in ['prevent', 'prevention', 'avoid', 'stop', 'protect']): response_text = R['prevention']
     elif any(w in message_lower for w in ['organic', 'natural', 'bio', 'neem', 'herbal']): response_text = R['organic']
